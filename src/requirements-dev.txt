@@ -1,0 +1,16 @@
+# Local development setup only - matches the grading sandbox's base image
+# exactly (numpy/pandas versions pinned, see algothon-leaderboard-runner's
+# requirements-base.txt for the source of truth).
+#
+# Do NOT submit this file. Your submission's own requirements.txt (only
+# needed if you use packages beyond this list) should declare ONLY the
+# extra packages you need - not a copy of this file. Submitting a copy of
+# this file would re-declare versions of packages already pinned in the
+# grading sandbox, which risks silently overriding them with whatever
+# version happens to be installed on your machine.
+numpy==2.5.1
+pandas==3.0.3
+scipy
+scikit-learn
+statsmodels
+matplotlib
