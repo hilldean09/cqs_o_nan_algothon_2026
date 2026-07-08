@@ -1,7 +1,7 @@
 # CQS O(NaN) Algothon 2026
 Our team's submission for the 2026 Algothon, an algorithmic trading competition run by the UNSW Fintech Society and Susquehanna.
 
-$ About Us
+# About Us
 Our team is "CQS O(NaN)" and consists of four members of the Curtin Quant Society (CQS) committee.
 
 Our team nane is a double entendre. 
