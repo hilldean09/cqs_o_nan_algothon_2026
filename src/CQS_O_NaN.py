@@ -50,6 +50,9 @@ feedback.
 #  create visualisations of the data. This will help use in 
 #  getting a picture idea of the data.
 
+
+##### Code Start #####
+
 g_number_Of_Instruments = 51
 current_Position = np.zeros( g_number_Of_Instruments )
 
@@ -70,5 +73,8 @@ def getMyPosition( prcSoFar ):
     current_Position = np.array( [ int( x ) for x in current_Position + return_Position ] )
 
     return current_Position 
+
+
+
 
 
