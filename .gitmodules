@@ -1,0 +1,3 @@
+[submodule "ext/algothon26-starter-code"]
+	path = ext/algothon26-starter-code
+	url = https://github.com/UNSW-FinTech-Society-IT/algothon26-starter-code.git
