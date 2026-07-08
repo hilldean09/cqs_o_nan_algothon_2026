@@ -20,6 +20,9 @@ Putting spaces between parenthesises and arguments (as
 seen below) can help a lot. It's that they encouraged in
 the UNIX and C unit at the least 
 
+Adding whitespace (blanks lines) between sections of code
+is also incredibly helpful for readibility.
+
 
 NOTE: Notes and ToDo's
 
@@ -31,20 +34,41 @@ to automatically search for these tags so they can be very
 useful.
 
 
-Please do let everyone know if you have any comments.
+I am mcuh more familar with C/C++ and it's 
+naming/documentation conventions so please let me know if
+things are different in Python.
+
+Please do let everyone know if you have any comments or 
+feedback.
 """
 
-g_Number_Of_Instruments = 51
-current_Position = np.zeros( number_Of_Instruments )
+# Big ToDo List :
+#   TODO: Write basic trading strategy (e.g. moving average
+#   crossover). Focus on writing reusable functions for future
+#   more competitive strategies.
+#  TODO: Data visualisation. Write a seperate Python script to 
+#  create visualisations of the data. This will help use in 
+#  getting a picture idea of the data.
 
+g_number_Of_Instruments = 51
+current_Position = np.zeros( g_number_Of_Instruments )
+
+# NOTE: We cannot change the argument variable name from
+# prcSoFar
 def getMyPosition( prcSoFar ):
     global current_Position
-    ( nins,nt ) = prcSoFar.shape
-    if (nt < 2):
-        return np.zeros(nins)
-    lastRet = np.log(prcSoFar[:,-1] / prcSoFar[:,-2])
-    lNorm = np.sqrt(lastRet.dot(lastRet))
-    lastRet /= lNorm
-    rpos = np.array([int(x) for x in 5000 * lastRet / prcSoFar[:,-1]])
-    currentPos = np.array([int(x) for x in currentPos+rpos])
-    return currentPoisiton 
+    ( number_Of_Instruments, number_Of_Timesteps ) = prcSoFar.shape
+
+    if( number_Of_Timesteps < 2 ):
+        return np.zeros( number_Of_Instruments )
+
+    last_Return  = np.log( prcSoFar[ :, -1 ] / prcSoFar[ :, -2 ] )
+    last_Return_Norm = np.sqrt( last_Return.dot( last_Return ) )
+
+    last_Return /= last_Return_Norm
+    return_Position = np.array( [ int( x ) for x in 5000 * last_Return / prcSoFar[ :, -1 ] ] )
+    current_Position = np.array( [ int( x ) for x in current_Position + return_Position ] )
+
+    return current_Position 
+
+
