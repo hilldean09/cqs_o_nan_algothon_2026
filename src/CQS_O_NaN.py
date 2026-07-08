@@ -48,7 +48,7 @@ feedback.
 #   more competitive strategies.
 #  TODO: Data visualisation. Write a seperate Python script to 
 #  create visualisations of the data. This will help use in 
-#  getting a picture idea of the data.
+#  getting a picture idea of the data. (WIP - Dean)
 
 
 ##### Code Start #####
