@@ -134,9 +134,22 @@ def logGeneralInfo( leading_String, tailing_String ):
 
 ##### Suuporting #####
 
-# TODO: Implement
 def getSeriesPairPearsonCorrelationValue( first_Series, second_Series ):
-    pass
+    number_Of_Values = first_Series.size
+
+    # Getting needed values
+    first_Mean = np.mean( first_Series )
+    second_Mean = np.mean( second_Series )
+
+    first_Sum_Of_Squares = np.sum( first_Series ** 2 )
+    second_Sum_Of_Squares = np.sum( second_Series ** 2 )
+
+    sum_Of_Products = np.sum( first_Series * second_Series )
+
+    correlation_Value = ( sum_Of_Products + number_Of_Values * first_Mean * second_Mean ) / ( np.sqrt( first_Sum_Of_Squares - number_Of_Value * first_Mean * first_Mean ) * np.sqrt( second_Sum_Of_Squares - number_Of_Value * second_Mean * second_Mean ) )
+
+    return correlation_Value
+
 
 def getAssetPairPearsonCorrelationValue( prices_So_Far, latest_Day, window_Size, first_Asset_Idx, second_Asset_Idx ):
     window_Start_Day = latest_Day - window_Size + 1
