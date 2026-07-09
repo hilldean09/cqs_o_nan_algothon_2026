@@ -73,6 +73,71 @@ def getMyPosition( prcSoFar ):
     return current_Position 
 
 
+##### Logging #####
+
+# NOTE: Logging verbosity
+#   0 : No logging
+#   1 : Errors only
+#   2 : Errors and warnings
+#   3 : Errors, warnings, and general info
+
+g_logging_Verbosity = 3
+
+# Error Logging #
+def logErrorHeader( function_Name_String, error_String ):
+    global g_logging_Verbosity
+    if( g_logging_Verbosity >= 1 ):
+        print( "[O(NaN)] [Error] " + function_Name_String + " : " + error_String )
+
+def logErrorValue( variable_Name_String, variable_Value ):
+    global g_logging_Verbosity
+    if( g_logging_Verbosity >= 1 ):
+        print( "\t" + variable_Name_String + " : " + str( variable_Value ) )
+
+def logErrorInfo( leading_String, tailing_String ):
+    global g_logging_Verbosity
+    if( g_logging_Verbosity >= 1 ):
+        print( "\t" + leading_String + " : " + tailing_String )
+
+# Warning Logging #
+def logWarningHeader( function_Name_String, warning_String ):
+    global g_logging_Verbosity
+    if( g_logging_Verbosity >= 2 ):
+        print( "[O(NaN)] [Error] " + function_Name_String + " : " + warning_String )
+
+def logWarningValue( variable_Name_String, variable_Value ):
+    global g_logging_Verbosity
+    if( g_logging_Verbosity >= 2 ):
+        print( "\t" + variable_Name_String + " : " + str( variable_Value ) )
+
+def logWarningInfo( leading_String, tailing_String ):
+    global g_logging_Verbosity
+    if( g_logging_Verbosity >= 2 ):
+        print( "\t" + leading_String + " : " + tailing_String )
+
+# General Info Logging #
+def logGeneralHeader( function_Name_String, string ):
+    global g_logging_Verbosity
+    if( g_logging_Verbosity >= 3 ):
+        print( "[O(NaN)] [Error] " + function_Name_String + " : " + string )
+
+def logGeneralValue( variable_Name_String, variable_Value ):
+    global g_logging_Verbosity
+    if( g_logging_Verbosity >= 3 ):
+        print( "\t" + variable_Name_String + " : " + str( variable_Value ) )
+
+def logGeneralInfo( leading_String, tailing_String ):
+    global g_logging_Verbosity
+    if( g_logging_Verbosity >= 3 ):
+        print( "\t" + leading_String + " : " + tailing_String )
+
+
+##### Suuporting #####
+
+
+
+##### Strategies #####
+
 # TODO: Implement
 def getPairPearsonCorrelationValue( prices_So_Far, latest_Day, window_Size, first_Asset_Idx, second_Asset_Idx ):
     return 0.0
@@ -104,11 +169,6 @@ def getPearsonCorrelationMatrix( prices_So_Far, desired_Latest_Day, desired_Wind
             correlation_Matrix[ first_Asset_Idx ][ second_Asset_Idx ] = getPairPearsonCorrelationValue( prices_So_Far, latest_Day, widnows_Size, first_Asset_Idx, second_Asset_Idx )
 
     return correlation_Matrix
-
-
-
-
-
 
 
 
