@@ -46,6 +46,7 @@ feedback.
 #   TODO: Write basic trading strategy (e.g. moving average
 #   crossover). Focus on writing reusable functions for future
 #   more competitive strategies.
+#   TODO: Write logging functions
 
 
 ##### Code Start #####
@@ -70,6 +71,42 @@ def getMyPosition( prcSoFar ):
     current_Position = np.array( [ int( x ) for x in current_Position + return_Position ] )
 
     return current_Position 
+
+
+# TODO: Implement
+def getPairPearsonCorrelationValue( prices_So_Far, latest_Day, window_Size, first_Asset_Idx, second_Asset_Idx ):
+    return 0.0
+
+def getPearsonCorrelationMatrix( prices_So_Far, desired_Latest_Day, desired_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = desired_Latest_Day
+    window_Size = desired_Window_Size
+
+    # Setting latest day to most recent
+    # day if inputted latest day exceeds 
+    # number of available timesteps
+    if( latest_Day > number_Of_Timesteps - 1 ):
+        latest_Day = number_Of_Timesteps - 1
+
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
+    # This can be significantly optimised
+    # if need be
+    correlation_Matrix = np.zeros( ( number_Of_Instruments, number_Of_Instruments ) )
+
+    for first_Asset_Idx in range( number_Of_Instruments ):
+        for second_Asset_Idx in range( number_Of_Instruments ):
+            correlation_Matrix[ first_Asset_Idx ][ second_Asset_Idx ] = getPairPearsonCorrelationValue( prices_So_Far, latest_Day, widnows_Size, first_Asset_Idx, second_Asset_Idx )
+
+    return correlation_Matrix
+
+
+
 
 
 
