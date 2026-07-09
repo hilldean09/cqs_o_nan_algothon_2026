@@ -146,7 +146,12 @@ def getSeriesPairPearsonCorrelationValue( first_Series, second_Series ):
 
     sum_Of_Products = np.sum( first_Series * second_Series )
 
-    correlation_Value = ( sum_Of_Products + number_Of_Values * first_Mean * second_Mean ) / ( np.sqrt( first_Sum_Of_Squares - number_Of_Values * first_Mean * first_Mean ) * np.sqrt( second_Sum_Of_Squares - number_Of_Value * second_Mean * second_Mean ) )
+    correlation_Value = ( sum_Of_Products - number_Of_Values * first_Mean * second_Mean ) / ( np.sqrt( first_Sum_Of_Squares - number_Of_Values * first_Mean * first_Mean ) * np.sqrt( second_Sum_Of_Squares - number_Of_Values * second_Mean * second_Mean ) )
+
+    #Error detection
+    if( correlation_Value > 1.1 or correlation_Value < -1.1 ):
+        logErrorHeader( "getSeriesPairPearsonCorrelationValue", "Correlation value outside of expected range" )
+        logErrorValue( "correlation_Value", correlation_Value )
 
     return correlation_Value
 
@@ -156,11 +161,6 @@ def getAssetPairPearsonCorrelationValue( prices_So_Far, latest_Day, window_Size,
 
     first_Series = prices_So_Far[ first_Asset_Idx ][ window_Start_Day : latest_Day + 1 : 1 ]
     second_Series = prices_So_Far[ second_Asset_Idx ][ window_Start_Day : latest_Day + 1 : 1 ]
-
-    # Temporary logging to confirm
-    logGeneralHeader( "getAssetPairPearsonCorrelationValue", "Confirming size" )
-    logGeneralValue( "first_Series.size", first_Series.size )
-    logGeneralValue( "second_Series.size", second_Series.size )
 
     pearson_Correlation_Value = getSeriesPairPearsonCorrelationValue( first_Series, second_Series )
     return pearson_Correlation_Value

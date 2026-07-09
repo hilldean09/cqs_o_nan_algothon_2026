@@ -58,15 +58,20 @@ def runPearsonCorrelationCoefficientVisualisation():
 
     for day_Num in day_Number_Vector:
         correlation_Matrix = onan.getPearsonCorrelationMatrix( prices_Values, day_Num, window_Size )
+        normalised_Correlation_Matrix = ( correlation_Matrix / 2 ) + 0.5
 
         # Updating plot
-        plt.imshow( correlation_Matrix, cmap="cool" )
+        plt.suptitle( "Pearson Correlation Matrix" )
         plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( day_Num ) )
+        plt.imshow( normalised_Correlation_Matrix, cmap="cool" )
 
         plt.draw()
-        plt.pause( 0.02 )
+        plt.pause( 0.001 )
         plt.clf()
 
+    plt.suptitle( "Pearson Correlation Matrix" )
+    plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( day_Num ) )
+    plt.imshow( normalised_Correlation_Matrix, cmap="cool" )
     plt.show()
 
 
