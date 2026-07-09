@@ -46,7 +46,7 @@ feedback.
 #   TODO: Write basic trading strategy (e.g. moving average
 #   crossover). Focus on writing reusable functions for future
 #   more competitive strategies.
-#   TODO: Write logging functions
+#   TODO: Implement realized volatility functions. (WIP - Dean)
 
 
 ##### Code Start #####
