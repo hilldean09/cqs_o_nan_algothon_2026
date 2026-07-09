@@ -46,6 +46,7 @@ feedback.
 #   TODO: Write basic trading strategy (e.g. moving average
 #   crossover). Focus on writing reusable functions for future
 #   more competitive strategies.
+#   TODO: Write logging functions
 
 
 ##### Code Start #####
@@ -133,9 +134,68 @@ def logGeneralInfo( leading_String, tailing_String ):
 
 ##### Suuporting #####
 
+def getSeriesPairPearsonCorrelationValue( first_Series, second_Series ):
+    number_Of_Values = first_Series.size
+
+    # Getting needed values
+    first_Mean = np.mean( first_Series )
+    second_Mean = np.mean( second_Series )
+
+    first_Sum_Of_Squares = np.sum( first_Series ** 2 )
+    second_Sum_Of_Squares = np.sum( second_Series ** 2 )
+
+    sum_Of_Products = np.sum( first_Series * second_Series )
+
+    correlation_Value = ( sum_Of_Products - number_Of_Values * first_Mean * second_Mean ) / ( np.sqrt( first_Sum_Of_Squares - number_Of_Values * first_Mean * first_Mean ) * np.sqrt( second_Sum_Of_Squares - number_Of_Values * second_Mean * second_Mean ) )
+
+    #Error detection
+    if( correlation_Value > 1.1 or correlation_Value < -1.1 ):
+        logErrorHeader( "getSeriesPairPearsonCorrelationValue", "Correlation value outside of expected range" )
+        logErrorValue( "correlation_Value", correlation_Value )
+
+    return correlation_Value
+
+
+def getAssetPairPearsonCorrelationValue( prices_So_Far, latest_Day, window_Size, first_Asset_Idx, second_Asset_Idx ):
+    window_Start_Day = latest_Day - window_Size + 1
+
+    first_Series = prices_So_Far[ first_Asset_Idx ][ window_Start_Day : latest_Day + 1 : 1 ]
+    second_Series = prices_So_Far[ second_Asset_Idx ][ window_Start_Day : latest_Day + 1 : 1 ]
+
+    pearson_Correlation_Value = getSeriesPairPearsonCorrelationValue( first_Series, second_Series )
+    return pearson_Correlation_Value
+
+def getPearsonCorrelationMatrix( prices_So_Far, desired_Latest_Day, desired_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = desired_Latest_Day
+    window_Size = desired_Window_Size
+
+    # Setting latest day to most recent
+    # day if inputted latest day exceeds 
+    # number of available timesteps
+    if( latest_Day > number_Of_Timesteps - 1 ):
+        latest_Day = number_Of_Timesteps - 1
+
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
+    # This can be significantly optimised
+    # if need be
+    correlation_Matrix = np.zeros( ( number_Of_Instruments, number_Of_Instruments ) )
+
+    for first_Asset_Idx in range( number_Of_Instruments ):
+        for second_Asset_Idx in range( number_Of_Instruments ):
+            correlation_Matrix[ first_Asset_Idx ][ second_Asset_Idx ] = getAssetPairPearsonCorrelationValue( prices_So_Far, latest_Day, window_Size, first_Asset_Idx, second_Asset_Idx )
+
+    return correlation_Matrix
 
 
 ##### Strategies #####
+
 
 
 
