@@ -145,7 +145,7 @@ def runMovingAverageRelativeVolatility_Visualisation():
         for asset_Idx_Selection_Idx in range( number_Of_Watched_Assets ):
             asset_Idx_Array[ asset_Idx_Selection_Idx ] = int( input( "Enter asset index for asset selection " + str( asset_Idx_Selection_Idx ) + " : " ) )
 
-    moving_Averages_Window_Size = int( input( "Enter moving average window size : " ) )
+    moving_Average_Window_Size = int( input( "Enter moving average window size : " ) )
     realized_Volatility_Window_Size = int( input( "Enter realized volatility window size : " ) )
 
     # Evaluating
@@ -154,6 +154,17 @@ def runMovingAverageRelativeVolatility_Visualisation():
     for asset_Idx_Array_Idx in range( number_Of_Watched_Assets ):
         for timestep_Idx in range( number_Of_Timesteps ):
             ma_Relative_RVol_Series_Array[ asset_Idx_Array_Idx ][ timestep_Idx ] = getAssetMARelativeRealizedVolatility( prices_So_Far, asset_Idx_Array[ asset_Idx_Array_Idx ], timestep_Idx, moving_Average_Window_Size, realized_Volatility_Window_Size ):
+
+    # Visualising
+    plt.suptitle( "Moving Average Relative Realized Volatility" )
+    plt.title( "moving_Average_Window_Size = " + str( moving_Average_Window_Size ) + " - realized_Volatility_Window_Size = " + str( realized_Volatility_Window_Size ) )
+    plt.ylim( 0, 1 )
+
+    for asset_Idx_Array_Idx in range( number_Of_Watched_Assets ):
+        plt.plot( day_Number_Vector, ma_Relative_RVol_Series_Array[ asset_Idx_Array_Idx ], label = "Asset " + str( asset_Idx_Array[ asset_Idx_Array_Idx ] ) )
+
+    plt.legend()
+    plt.show()
 
 
 
