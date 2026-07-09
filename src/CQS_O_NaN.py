@@ -215,7 +215,7 @@ def getAssetMovingAverage( prices_So_Far, asset_Idx, desired_Latest_Day, desired
 
 # Realizaed Variance and Volatility #
 
-def getAssetRealizedVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
+def getAssetRealizedVariance( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
     
     latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
@@ -227,8 +227,23 @@ def getAssetRealizedVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, de
     if( latest_Day - window_Size + 1 < 0 ):
         window_Size = latest_Day + 1
 
-    
+    window_Start_Day = int( latest_Day - window_Size + 1 )
 
+    series_Mean = np.mean( prices_So_Far[ asset_Idx ][ window_Start_Day : latest_Day + 1 : 1 ] )
+    series_Mean_Of_Squared = np.mean( prices_So_Far[ asset_Idx ][ window_Start_Day : latest_Day + 1 : 1 ] ** 2 )
+
+    realized_Variance = series_Mean_Of_Squared - ( series_Mean * series_Mean )
+
+    if( realized_Variance < 0 ):
+        logErrorHeader( "getAssetRealizedVariance", "Returning negative value" )
+        logErrorValue( "realized_Variance", realized_Variance )
+
+    return realized_Variance
+
+def getAssetRealizedVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
+    realized_Variance = getAssetRealizedVariance( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size )
+
+    return np.sqrt( realized_Variance )
 
 
 
