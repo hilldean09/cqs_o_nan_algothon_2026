@@ -3,26 +3,33 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
+import CQS_O_NaN as onan
+
 g_data_File_Name = "prices.txt"
 
-def run_Data_Visualisation_Menu():
+def runDataVisualisationMenu():
     print( "##### Data Visualisation Menu #####" )
     print( " " )
     print( "Options : " )
     print( "\t0 : All Data Overlayed" )
+    print( "\t1 : Pearson Correlation Matrix" )
     print( " " )
     print( "Enter choice : ", end="" )
 
     user_Visualisation_Choice_String = input()
     user_Visualisation_Choice_Int = int( user_Visualisation_Choice_String )
 
+    print( " " )
+
     if( user_Visualisation_Choice_Int == 0 ):
-        run_All_Data_Overlayed_Visualisation()
+        runAllDataOverlayedVisualisation()
+    elif( user_Visualisation_Choice_Int == 1 ):
+        runPearsonCorrelationCoefficientVisualisation()
 
 
-def run_All_Data_Overlayed_Visualisation():
+def runAllDataOverlayedVisualisation():
     global g_data_File_Name
-    prices_Data = pd.read_csv( g_data_File_Name, sep=" " )
+    prices_Data = pd.read_csv( g_data_File_Name, sep=r"\s+", header=0, index_col=None )
 
     day_Number_Vector = np.linspace( 0, 499, 500 )
 
@@ -30,8 +37,40 @@ def run_All_Data_Overlayed_Visualisation():
         plt.plot( day_Number_Vector, prices_Data.iloc[ 0:500:1 , instrument_Num ], label=prices_Data.columns[ instrument_Num ] )
     plt.show()
 
+def runPearsonCorrelationCoefficientVisualisation():
+    global g_data_File_Name
+    prices_Data = pd.read_csv( g_data_File_Name, sep=r"\s+", header=0, index_col=None )
+    prices_Values = ( prices_Data.values ).T
+
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_Values.shape
+
+    day_Number_Vector = range( number_Of_Timesteps )
+
+    window_Size = int( input( "Select window size : " ) )
+    print( " " )
+
+    correlation_Matrix = np.zeros( ( number_Of_Instruments, number_Of_Instruments ) )
+
+    plt.suptitle( "Pearson Correlation Matrix" )
+    plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( 0 ) )
+    plt.imshow( correlation_Matrix, cmap="cool" )
+    plt.show(block=False)
+
+    for day_Num in day_Number_Vector:
+        correlation_Matrix = onan.getPearsonCorrelationMatrix( prices_Values, day_Num, window_Size )
+
+        # Updating plot
+        plt.imshow( correlation_Matrix, cmap="cool" )
+        plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( day_Num ) )
+
+        plt.draw()
+        plt.pause( 0.02 )
+        plt.clf()
+
+    plt.show()
+
 
 if __name__ == "__main__":
-    run_Data_Visualisation_Menu()
+    runDataVisualisationMenu()
 
 
