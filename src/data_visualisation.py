@@ -14,6 +14,7 @@ def runDataVisualisationMenu():
     print( "\t0 : All Data Overlayed" )
     print( "\t1 : Pearson Correlation Matrix" )
     print( "\t2 : Asset with Multiple Moving Averages" )
+    print( "\t3 : Moving Average Relaive Realized Volatility" )
     print( " " )
     print( "Enter choice : ", end="" )
 
@@ -28,6 +29,8 @@ def runDataVisualisationMenu():
         runPearsonCorrelationCoefficientVisualisation()
     elif( user_Visualisation_Choice_Int == 2 ):
         runAssetWithMultipleMovingAveragesVisualisation()
+    elif( user_Visualisation_Choice_Int == 2 ):
+        runMovingAverageRelativeVolatility_Visualisation()
 
 
 def runAllDataOverlayedVisualisation():
@@ -116,6 +119,31 @@ def runAssetWithMultipleMovingAveragesVisualisation():
     plt.legend()
 
     plt.show()
+
+def runMovingAverageRelativeVolatility_Visualisation():
+    global g_data_File_Name
+    prices_Data = pd.read_csv( g_data_File_Name, sep=r"\s+", header=0, index_col=None )
+    prices_Values = ( prices_Data.values ).T
+
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_Values.shape
+
+    day_Number_Vector = range( number_Of_Timesteps )
+
+    # Getting inputs
+    number_Of_Watched_Assets_String = input( "Enter number of assets to watch (or all): " )
+    number_Of_Watched_Assets = 0
+
+    if( number_Of_Watched_Assets_String == "all" ):
+        # All case
+        number_Of_Watched_Assets = number_Of_Instruments
+        asset_Idx_Array = np.asarray( range( number_Of_Watched_Assets ) )
+    else:
+        # Integer case
+        number_Of_Watched_Assets = int( number_Of_Watched_Assets_String )
+        asset_Idx_Array = np.zeros( number_Of_Watched_Assets )
+
+        for asset_Idx_Selection_Idx in range( number_Of_Watched_Assets ):
+            asset_Idx_Array[ asset_Idx_Selection_Idx ] = int( input( "Enter asset index for asset selection " + str( asset_Idx_Selection_Idx ) + " : " ) )
 
 
 
