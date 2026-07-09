@@ -36,11 +36,35 @@ def runDataVisualisationMenu():
 def runAllDataOverlayedVisualisation():
     global g_data_File_Name
     prices_Data = pd.read_csv( g_data_File_Name, sep=r"\s+", header=0, index_col=None )
+    prices_Values = np.asarray( ( prices_Data.values ).T )
 
-    day_Number_Vector = np.linspace( 0, 499, 500 )
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_Values.shape
 
-    for instrument_Num in range( 0, 50, 1):
-        plt.plot( day_Number_Vector, prices_Data.iloc[ 0:500:1 , instrument_Num ], label=prices_Data.columns[ instrument_Num ] )
+    day_Number_Vector = range( number_Of_Timesteps )
+
+    number_Of_Watched_Assets_String = input( "Enter number of assets to watch (or all): " )
+    number_Of_Watched_Assets = 0
+
+    if( number_Of_Watched_Assets_String == "all" ):
+        # All case
+        number_Of_Watched_Assets = number_Of_Instruments
+        asset_Idx_Array = np.asarray( range( number_Of_Watched_Assets ) )
+    else:
+        # Integer case
+        number_Of_Watched_Assets = int( number_Of_Watched_Assets_String )
+        asset_Idx_Array = np.zeros( number_Of_Watched_Assets, dtype=int )
+
+        for asset_Idx_Selection_Idx in range( number_Of_Watched_Assets ):
+            asset_Idx_Array[ asset_Idx_Selection_Idx ] = int( input( "Enter asset index for asset selection " + str( asset_Idx_Selection_Idx ) + " : " ) )
+
+    plt.suptitle( "Raw Asset Prices" )
+
+    for asset_Idx_Array_Idx in range( number_Of_Watched_Assets ):
+        asset_Idx = asset_Idx_Array[ asset_Idx_Array_Idx ]
+        plt.plot( day_Number_Vector, prices_Values[ asset_Idx ], label = "Asset " + str( asset_Idx_Array[ asset_Idx_Array ] ) )
+
+    plt.legend()
+
     plt.show()
 
 def runPearsonCorrelationCoefficientVisualisation():
