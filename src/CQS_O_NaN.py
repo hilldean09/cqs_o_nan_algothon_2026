@@ -54,6 +54,10 @@ feedback.
 g_number_Of_Instruments = 51
 current_Position = np.zeros( g_number_Of_Instruments )
 
+# Strategy Enumeration :
+#   0 : main strategy (reserved)
+g_strategy_Selection_Enum = 0
+
 # NOTE: We cannot change the argument variable name from
 # prcSoFar
 def getMyPosition( prcSoFar ):
