@@ -52,11 +52,13 @@ def runPearsonCorrelationCoefficientVisualisation():
     window_Size = int( input( "Select window size : " ) )
     print( " " )
 
+    colour_Map = "cool"
+
     correlation_Matrix = np.zeros( ( number_Of_Instruments, number_Of_Instruments ) )
 
     plt.suptitle( "Pearson Correlation Matrix" )
     plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( 0 ) )
-    plt.imshow( correlation_Matrix, cmap="cool" )
+    plt.imshow( correlation_Matrix, cmap = colour_Map )
     plt.show(block=False)
 
     for day_Num in day_Number_Vector:
@@ -66,7 +68,7 @@ def runPearsonCorrelationCoefficientVisualisation():
         # Updating plot
         plt.suptitle( "Pearson Correlation Matrix" )
         plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( day_Num ) )
-        plt.imshow( normalised_Correlation_Matrix, cmap="cool" )
+        plt.imshow( normalised_Correlation_Matrix, cmap = colour_Map )
 
         plt.draw()
         plt.pause( 0.001 )
@@ -74,7 +76,7 @@ def runPearsonCorrelationCoefficientVisualisation():
 
     plt.suptitle( "Pearson Correlation Matrix" )
     plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( day_Num ) )
-    plt.imshow( normalised_Correlation_Matrix, cmap="cool" )
+    plt.imshow( normalised_Correlation_Matrix, cmap = colour_Map  )
     plt.show()
 
 def runAssetWithMultipleMovingAveragesVisualisation():
