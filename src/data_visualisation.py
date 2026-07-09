@@ -61,9 +61,10 @@ def runAllDataOverlayedVisualisation():
 
     for asset_Idx_Array_Idx in range( number_Of_Watched_Assets ):
         asset_Idx = asset_Idx_Array[ asset_Idx_Array_Idx ]
-        plt.plot( day_Number_Vector, prices_Values[ asset_Idx ], label = "Asset " + str( asset_Idx_Array[ asset_Idx_Array ] ) )
+        plt.plot( day_Number_Vector, prices_Values[ asset_Idx ], label = "Asset " + str( asset_Idx_Array[ asset_Idx_Array_Idx ] ) )
 
-    plt.legend()
+    if( number_Of_Watched_Assets <= 10 ):
+        plt.legend()
 
     plt.show()
 
@@ -187,7 +188,9 @@ def runMovingAverageRelativeVolatility_Visualisation():
     for asset_Idx_Array_Idx in range( number_Of_Watched_Assets ):
         plt.plot( day_Number_Vector, ma_Relative_RVol_Series_Array[ asset_Idx_Array_Idx ], label = "Asset " + str( asset_Idx_Array[ asset_Idx_Array_Idx ] ) )
 
-    plt.legend()
+    if( number_Of_Watched_Assets <= 10 ):
+        plt.legend()
+
     plt.show()
 
 
