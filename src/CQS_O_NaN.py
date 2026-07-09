@@ -135,8 +135,22 @@ def logGeneralInfo( leading_String, tailing_String ):
 ##### Suuporting #####
 
 # TODO: Implement
-def getPairPearsonCorrelationValue( prices_So_Far, latest_Day, window_Size, first_Asset_Idx, second_Asset_Idx ):
-    return 0.0
+def getSeriesPairPearsonCorrelationValue( first_Series, second_Series ):
+    pass
+
+def getAssetPairPearsonCorrelationValue( prices_So_Far, latest_Day, window_Size, first_Asset_Idx, second_Asset_Idx ):
+    window_Start_Day = latest_Day - window_Size + 1
+
+    first_Series = prices_So_Far[ first_Asset_Idx ][ window_Start_Day : latest_Day + 1 : 1 ]
+    second_Series = prices_So_Far[ second_Asset_Idx ][ window_Start_Day : latest_Day + 1 : 1 ]
+
+    # Temporary logging to confirm
+    logGeneralHeader( "getAssetPairPearsonCorrelationValue", "Confirming size" )
+    logGeneralValue( "first_Series.size", first_Series.size )
+    logGeneralValue( "second_Series.size", second_Series.size )
+
+    pearson_Correlation_Value = getSeriesPairPearsonCorrelationValue( first_Series, second_Series )
+    return pearson_Correlation_Value
 
 def getPearsonCorrelationMatrix( prices_So_Far, desired_Latest_Day, desired_Window_Size ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
@@ -162,7 +176,7 @@ def getPearsonCorrelationMatrix( prices_So_Far, desired_Latest_Day, desired_Wind
 
     for first_Asset_Idx in range( number_Of_Instruments ):
         for second_Asset_Idx in range( number_Of_Instruments ):
-            correlation_Matrix[ first_Asset_Idx ][ second_Asset_Idx ] = getPairPearsonCorrelationValue( prices_So_Far, latest_Day, widnows_Size, first_Asset_Idx, second_Asset_Idx )
+            correlation_Matrix[ first_Asset_Idx ][ second_Asset_Idx ] = getAssetPairPearsonCorrelationValue( prices_So_Far, latest_Day, widnows_Size, first_Asset_Idx, second_Asset_Idx )
 
     return correlation_Matrix
 
