@@ -13,6 +13,7 @@ def runDataVisualisationMenu():
     print( "Options : " )
     print( "\t0 : All Data Overlayed" )
     print( "\t1 : Pearson Correlation Matrix" )
+    print( "\t2 : Asset with Multiple Moving Averages" )
     print( " " )
     print( "Enter choice : ", end="" )
 
@@ -73,6 +74,46 @@ def runPearsonCorrelationCoefficientVisualisation():
     plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( day_Num ) )
     plt.imshow( normalised_Correlation_Matrix, cmap="cool" )
     plt.show()
+
+def runAssetWithMultipleMovingAveragesVisualisation():
+    global g_data_File_Name
+    prices_Data = pd.read_csv( g_data_File_Name, sep=r"\s+", header=0, index_col=None )
+    prices_Values = ( prices_Data.values ).T
+
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_Values.shape
+
+    day_Number_Vector = range( number_Of_Timesteps )
+
+    # Getting inputs
+    asset_Idx = input( "Enter desired asset index : " )
+    number_Of_Moving_Averages = input( "Enter desired number of moving averages : " )
+
+    moving_Averages_Window_Size_Array = np.zeros( number_Of_Moving_Averages )
+
+    for moving_Average_Idx in range( number_Of_Moving_Averages ):
+        moving_Averages_Window_Size_Array[ moving_Average_Idx ] = input( "Enter window size for moving average " + str( moving_Average_Idx ) + " : " )
+
+    print( " " )
+
+    # Calculating moving average series
+    moving_Average_Series_Array = np.zeros( ( number_Of_Moving_Averages, number_Of_Timesteps ) )
+
+    for moving_Average_Idx in range( number_Of_Moving_Averages ):
+        for timestep_Idx in range( number_Of_Timesteps ):
+            movingAverage_Series_Array[ moving_Average_Idx ][ timestep_Idx ] = onan.getAssetMovingAverage( prices_So_Far, asset_Idx, timestep_Idx, moving_Averages_Window_Size_Array[ moving_Average_Idx ] )
+
+    # Plotting
+    plt.suptitle( "Moving Avergages of Asset " + "asset_Idx" )
+    plt.plot( day_Number_Vector, prices_So_Far[ asset_Idx ], label = "Trading price" )
+
+    for moving_Average_Idx in range( number_Of_Moving_Averages ):
+        plt.plot( day_Number_Vector, moving_Average_Series_Array[ moving_Avaerage_Idx ], label = "Window size = " + str( moving_Averages_Window_Size_Array[ moving_Average_Idx ] ) )
+
+    plt.legend()
+
+    plt.show()
+
+
 
 
 if __name__ == "__main__":
