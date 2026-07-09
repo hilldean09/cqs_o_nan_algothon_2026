@@ -134,10 +134,6 @@ def logGeneralInfo( leading_String, tailing_String ):
 
 ##### Suuporting #####
 
-
-
-##### Strategies #####
-
 # TODO: Implement
 def getPairPearsonCorrelationValue( prices_So_Far, latest_Day, window_Size, first_Asset_Idx, second_Asset_Idx ):
     return 0.0
@@ -169,6 +165,10 @@ def getPearsonCorrelationMatrix( prices_So_Far, desired_Latest_Day, desired_Wind
             correlation_Matrix[ first_Asset_Idx ][ second_Asset_Idx ] = getPairPearsonCorrelationValue( prices_So_Far, latest_Day, widnows_Size, first_Asset_Idx, second_Asset_Idx )
 
     return correlation_Matrix
+
+
+##### Strategies #####
+
 
 
 
