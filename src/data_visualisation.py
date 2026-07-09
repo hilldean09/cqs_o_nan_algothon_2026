@@ -26,6 +26,8 @@ def runDataVisualisationMenu():
         runAllDataOverlayedVisualisation()
     elif( user_Visualisation_Choice_Int == 1 ):
         runPearsonCorrelationCoefficientVisualisation()
+    elif( user_Visualisation_Choice_Int == 2 ):
+        runAssetWithMultipleMovingAveragesVisualisation()
 
 
 def runAllDataOverlayedVisualisation():
@@ -85,13 +87,13 @@ def runAssetWithMultipleMovingAveragesVisualisation():
     day_Number_Vector = range( number_Of_Timesteps )
 
     # Getting inputs
-    asset_Idx = input( "Enter desired asset index : " )
-    number_Of_Moving_Averages = input( "Enter desired number of moving averages : " )
+    asset_Idx = int( input( "Enter desired asset index : " ) )
+    number_Of_Moving_Averages = int( input( "Enter desired number of moving averages : " ) )
 
     moving_Averages_Window_Size_Array = np.zeros( number_Of_Moving_Averages )
 
     for moving_Average_Idx in range( number_Of_Moving_Averages ):
-        moving_Averages_Window_Size_Array[ moving_Average_Idx ] = input( "Enter window size for moving average " + str( moving_Average_Idx ) + " : " )
+        moving_Averages_Window_Size_Array[ moving_Average_Idx ] = int( input( "Enter window size for moving average " + str( moving_Average_Idx ) + " : " ) )
 
     print( " " )
 
@@ -100,14 +102,14 @@ def runAssetWithMultipleMovingAveragesVisualisation():
 
     for moving_Average_Idx in range( number_Of_Moving_Averages ):
         for timestep_Idx in range( number_Of_Timesteps ):
-            movingAverage_Series_Array[ moving_Average_Idx ][ timestep_Idx ] = onan.getAssetMovingAverage( prices_So_Far, asset_Idx, timestep_Idx, moving_Averages_Window_Size_Array[ moving_Average_Idx ] )
+            moving_Average_Series_Array[ moving_Average_Idx ][ timestep_Idx ] = onan.getAssetMovingAverage( prices_Values, asset_Idx, timestep_Idx, moving_Averages_Window_Size_Array[ moving_Average_Idx ] )
 
     # Plotting
     plt.suptitle( "Moving Avergages of Asset " + "asset_Idx" )
-    plt.plot( day_Number_Vector, prices_So_Far[ asset_Idx ], label = "Trading price" )
+    plt.plot( day_Number_Vector, prices_Values[ asset_Idx ], label = "Trading price" )
 
     for moving_Average_Idx in range( number_Of_Moving_Averages ):
-        plt.plot( day_Number_Vector, moving_Average_Series_Array[ moving_Avaerage_Idx ], label = "Window size = " + str( moving_Averages_Window_Size_Array[ moving_Average_Idx ] ) )
+        plt.plot( day_Number_Vector, moving_Average_Series_Array[ moving_Average_Idx ], label = "Window size = " + str( moving_Averages_Window_Size_Array[ moving_Average_Idx ] ) )
 
     plt.legend()
 

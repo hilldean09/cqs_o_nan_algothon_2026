@@ -207,7 +207,7 @@ def getAssetMovingAverage( prices_So_Far, asset_Idx, desired_Latest_Day, desired
     if( latest_Day - window_Size + 1 < 0 ):
         window_Size = latest_Day + 1
 
-    window_Start_Day = latest_Day - window_Size + 1
+    window_Start_Day = int( latest_Day - window_Size + 1 )
 
     moving_Average = np.mean( prices_So_Far[ asset_Idx ][ window_Start_Day : latest_Day + 1 : 1 ] )
 
