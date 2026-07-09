@@ -146,7 +146,7 @@ def getSeriesPairPearsonCorrelationValue( first_Series, second_Series ):
 
     sum_Of_Products = np.sum( first_Series * second_Series )
 
-    correlation_Value = ( sum_Of_Products + number_Of_Values * first_Mean * second_Mean ) / ( np.sqrt( first_Sum_Of_Squares - number_Of_Value * first_Mean * first_Mean ) * np.sqrt( second_Sum_Of_Squares - number_Of_Value * second_Mean * second_Mean ) )
+    correlation_Value = ( sum_Of_Products + number_Of_Values * first_Mean * second_Mean ) / ( np.sqrt( first_Sum_Of_Squares - number_Of_Values * first_Mean * first_Mean ) * np.sqrt( second_Sum_Of_Squares - number_Of_Value * second_Mean * second_Mean ) )
 
     return correlation_Value
 
@@ -189,7 +189,7 @@ def getPearsonCorrelationMatrix( prices_So_Far, desired_Latest_Day, desired_Wind
 
     for first_Asset_Idx in range( number_Of_Instruments ):
         for second_Asset_Idx in range( number_Of_Instruments ):
-            correlation_Matrix[ first_Asset_Idx ][ second_Asset_Idx ] = getAssetPairPearsonCorrelationValue( prices_So_Far, latest_Day, widnows_Size, first_Asset_Idx, second_Asset_Idx )
+            correlation_Matrix[ first_Asset_Idx ][ second_Asset_Idx ] = getAssetPairPearsonCorrelationValue( prices_So_Far, latest_Day, window_Size, first_Asset_Idx, second_Asset_Idx )
 
     return correlation_Matrix
 
