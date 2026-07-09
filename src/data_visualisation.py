@@ -107,7 +107,7 @@ def runAssetWithMultipleMovingAveragesVisualisation():
             moving_Average_Series_Array[ moving_Average_Idx ][ timestep_Idx ] = onan.getAssetMovingAverage( prices_Values, asset_Idx, timestep_Idx, moving_Averages_Window_Size_Array[ moving_Average_Idx ] )
 
     # Plotting
-    plt.suptitle( "Moving Avergages of Asset " + "asset_Idx" )
+    plt.suptitle( "Moving Avergages of Asset " + str( asset_Idx ) )
     plt.plot( day_Number_Vector, prices_Values[ asset_Idx ], label = "Trading price" )
 
     for moving_Average_Idx in range( number_Of_Moving_Averages ):
