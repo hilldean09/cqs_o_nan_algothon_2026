@@ -134,6 +134,7 @@ def logGeneralInfo( leading_String, tailing_String ):
 
 ##### Suuporting #####
 
+# Pearson Correlation Matrix #
 def getSeriesPairPearsonCorrelationValue( first_Series, second_Series ):
     number_Of_Values = first_Series.size
 
@@ -192,6 +193,26 @@ def getPearsonCorrelationMatrix( prices_So_Far, desired_Latest_Day, desired_Wind
             correlation_Matrix[ first_Asset_Idx ][ second_Asset_Idx ] = getAssetPairPearsonCorrelationValue( prices_So_Far, latest_Day, window_Size, first_Asset_Idx, second_Asset_Idx )
 
     return correlation_Matrix
+
+# Moving Average #
+def getAssetMovingAverage( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
+
+    window_Size = desired_Window_Size
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
+    window_Start_Day = latest_Day - window_Size + 1
+
+    moving_Average = np.mean( prices_So_Far[ asset_Idx ][ window_Start_Day : latest_Day + 1 : 1 ] )
+
+    return moving_Average
+
 
 
 ##### Strategies #####
