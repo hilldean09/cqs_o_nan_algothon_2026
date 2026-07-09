@@ -72,6 +72,15 @@ def getMyPosition( prcSoFar ):
     return current_Position 
 
 
+##### Logging #####
+
+
+
+##### Suuporting #####
+
+
+
+##### Strategies #####
 
 
 
