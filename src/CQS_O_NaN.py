@@ -257,7 +257,7 @@ def getAssetMARelativeRealizedVolatility( prices_So_Far, asset_Idx, desired_Late
     realized_Volatility = getAssetRealizedVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, realized_Volatility_Window_Size )
     moving_Average = getAssetMovingAverage( prices_So_Far, asset_Idx, desired_Latest_Day, moving_Average_Window_Size )
 
-    return realized_Volatility_Window_Size / moving_Average
+    return ( realized_Volatility / moving_Average )
 
 
 

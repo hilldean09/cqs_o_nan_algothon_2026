@@ -158,7 +158,7 @@ def runMovingAverageRelativeVolatility_Visualisation():
     # Visualising
     plt.suptitle( "Moving Average Relative Realized Volatility" )
     plt.title( "moving_Average_Window_Size = " + str( moving_Average_Window_Size ) + " - realized_Volatility_Window_Size = " + str( realized_Volatility_Window_Size ) )
-    plt.ylim( 0, 1 )
+    plt.ylim( 0, 0.4 )
 
     for asset_Idx_Array_Idx in range( number_Of_Watched_Assets ):
         plt.plot( day_Number_Vector, ma_Relative_RVol_Series_Array[ asset_Idx_Array_Idx ], label = "Asset " + str( asset_Idx_Array[ asset_Idx_Array_Idx ] ) )
