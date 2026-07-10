@@ -338,17 +338,21 @@ def getAssetMARelativeArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_
 ##### Strategies #####
 
 
+# Moving Average Crossover Parameters
+g_ma_Crossover_Short_Window_Size = 5
+g_ma_Crossover_Long_Window_Size = 30
+
 # TODO: Write a little documentation 
 # explaining formulas
 def runMovingAverageCrossoverStrategy( prices_So_Far ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
 
+    global g_ma_Crossover_Short_Window_Size
+    global g_ma_Crossover_Long_Window_Size
+
     # TODO: make these global parameters 
     # (so they can be moified and optimised in
     # the future)
-    Short_Window_Size = 5
-    Long_Window_Size = 30
-
 
     positions = np.zeros( number_Of_Instruments)
 
@@ -356,12 +360,12 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
     # problematic. Note that my functions will still run
     # even if the window size is greater than the available
     # timesteps
-    if number_Of_Timesteps < Long_Window_Size:
+    if number_Of_Timesteps < g_ma_Crossover_Long_Window_Size:
         return positions
 
     for asset_Idx in range( number_Of_Instruments ):
-        short_MA = getAssetMovingAverage( prices_So_Far, asset_Idx, number_Of_Timesteps - 1, Short_Window_Size)
-        long_MA = getAssetMovingAverage( prices_So_Far, asset_Idx, number_Of_Timesteps - 1, Long_Window_Size)
+        short_MA = getAssetMovingAverage( prices_So_Far, asset_Idx, number_Of_Timesteps - 1, g_ma_Crossover_Short_Window_Size)
+        long_MA = getAssetMovingAverage( prices_So_Far, asset_Idx, number_Of_Timesteps - 1, g_ma_Crossover_Long_Window_Size)
 
 
         moving_Average_Signal = - ( short_MA - long_MA )/ long_MA
