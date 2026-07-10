@@ -57,7 +57,7 @@ current_Position = np.zeros( g_number_Of_Instruments )
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
 #   1 : moving average crossover
-g_strategy_Selection_Enum = 0
+g_strategy_Selection_Enum = 1
 
 # NOTE: We cannot change the argument variable name from
 # prcSoFar
@@ -71,7 +71,7 @@ def getMyPosition( prcSoFar ):
         return np.zeros( number_Of_Instruments )
 
     if( g_strategy_Selection_Enum == 1 ):
-        return_Position = runMovingAverageCrossoverStrategy( prices_So_Far )
+        return_Position = runMovingAverageCrossoverStrategy( prcSoFar )
 
     current_Position = return_Position
 
