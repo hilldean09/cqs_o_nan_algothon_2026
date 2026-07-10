@@ -263,6 +263,29 @@ def getAssetMARelativeRealizedVolatility( prices_So_Far, asset_Idx, desired_Late
 
     return ( realized_Volatility / moving_Average )
 
+# Appreciation #
+def getAssetMeanLogRate( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
+
+    window_Size = desired_Window_Size
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
+    window_Start_Day = int( latest_Day - window_Size + 1 )
+
+    sum_Of_Log_Rate = 0
+    for start_Day_Offset in range( window_Size - 1 ):
+        sum_Of_Log_Rate += np.log( prices_So_Far[ asset_Idx ][ window_Start_Day + start_Day_Offset ] / prices_So_Far[ asset_Idx ][ window_Start_Day + start_Day_Offset + 1 ] )
+
+    mean_Of_Log_Rate = sum_Of_Log_Rate / ( window_Size + 1 )
+
+    return mean_Of_Log_Rate
+
 
 
 
