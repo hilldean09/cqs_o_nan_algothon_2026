@@ -46,6 +46,7 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
             score_Array[ parameter_Combination_Index ] = score
 
         if( score > max_Score ):
+            max_Score = score
             max_Score_Parameters = parameter_Combination
 
     # TODO: Implemenet visual
