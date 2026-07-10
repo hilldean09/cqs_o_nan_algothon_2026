@@ -63,17 +63,17 @@ g_strategy_Selection_Enum = 0
 # prcSoFar
 def getMyPosition( prcSoFar ):
     global current_Position
+    global g_strategy_Selection_Enum
+
     ( number_Of_Instruments, number_Of_Timesteps ) = prcSoFar.shape
 
     if( number_Of_Timesteps < 2 ):
         return np.zeros( number_Of_Instruments )
 
-    last_Return  = np.log( prcSoFar[ :, -1 ] / prcSoFar[ :, -2 ] )
-    last_Return_Norm = np.sqrt( last_Return.dot( last_Return ) )
+    if( g_strategy_Selection_Enum == 1 ):
+        return_Position = runMovingAverageCrossoverStrategy( prices_So_Far )
 
-    last_Return /= last_Return_Norm
-    return_Position = np.array( [ int( x ) for x in 5000 * last_Return / prcSoFar[ :, -1 ] ] )
-    current_Position = np.array( [ int( x ) for x in current_Position + return_Position ] )
+    current_Position = return_Position
 
     return current_Position 
 
@@ -340,7 +340,7 @@ def getAssetMARelativeArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_
 
 # TODO: Write a little documentation 
 # explaining formulas
-def movingAverageCrossoverStrategy( prices_So_Far ):
+def runMovingAverageCrossoverStrategy( prices_So_Far ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
 
     # TODO: make these global parameters 
