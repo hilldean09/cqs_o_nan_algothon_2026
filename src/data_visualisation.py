@@ -15,7 +15,7 @@ def runDataVisualisationMenu():
     print( "\t1 : Pearson Correlation Matrix" )
     print( "\t2 : Asset with Multiple Moving Averages" )
     print( "\t3 : Moving Average Relaive Realized Volatility" )
-    print( "\t4 : Moving Average Relaive Arithmetic Drift" )
+    print( "\t4 : Arithmetic Drift" )
     print( " " )
     print( "Enter choice : ", end="" )
 
@@ -33,7 +33,7 @@ def runDataVisualisationMenu():
     elif( user_Visualisation_Choice_Int == 3 ):
         runMovingAverageRelativeVolatilityVisualisation()
     elif( user_Visualisation_Choice_Int == 4 ):
-        runMovingAverageRelativeArithmeticDriftVisualisation()
+        runArithmeticDriftVisualisation()
 
 
 
@@ -197,7 +197,7 @@ def runMovingAverageRelativeVolatilityVisualisation():
 
     plt.show()
 
-def runMovingAverageRelativeArithmeticDriftVisualisation():
+def runArithmeticDriftVisualisation():
     global g_data_File_Name
     prices_Data = pd.read_csv( g_data_File_Name, sep=r"\s+", header=0, index_col=None )
     prices_Values = ( prices_Data.values ).T
@@ -226,19 +226,19 @@ def runMovingAverageRelativeArithmeticDriftVisualisation():
     arithmetic_Drift_Window_Size = int( input( "Enter arithmetic drift window size : " ) )
 
     # Evaluating
-    ma_Relative_ADri_Series_Array = np.zeros( ( number_Of_Watched_Assets, number_Of_Timesteps ) )
+    arithmetic_Drift_Series_Array = np.zeros( ( number_Of_Watched_Assets, number_Of_Timesteps ) )
 
     for asset_Idx_Array_Idx in range( number_Of_Watched_Assets ):
         for timestep_Idx in range( number_Of_Timesteps ):
-            ma_Relative_ADri_Series_Array[ asset_Idx_Array_Idx ][ timestep_Idx ] = onan.getAssetMARelativeArithmeticDrift( prices_Values, asset_Idx_Array[ asset_Idx_Array_Idx ], timestep_Idx, moving_Average_Window_Size, realized_Volatility_Window_Size, arithmetic_Drift_Window_Size )
+            ma_Relative_ADri_Series_Array[ asset_Idx_Array_Idx ][ timestep_Idx ] = onan.getAssetArithmeticDrift( prices_Values, asset_Idx_Array[ asset_Idx_Array_Idx ], timestep_Idx,arithmetic_Drift_Window_Size, realized_Volatility_Window_Size )
 
     # Visualising
-    plt.suptitle( "Moving Average Relative Arithmetic Drift" )
-    plt.title( "moving_Average_Window_Size = " + str( moving_Average_Window_Size ) + " - realized_Volatility_Window_Size = " + str( realized_Volatility_Window_Size ) + " - arithmetic_Drift_Window_Size = " + str( arithmetic_Drift_Window_Size ) )
-    plt.ylim( 0, 1 )
+    plt.suptitle( "Arithmetic Drift" )
+    plt.title( "realized_Volatility_Window_Size = " + str( realized_Volatility_Window_Size ) + " - arithmetic_Drift_Window_Size = " + str( arithmetic_Drift_Window_Size ) )
+    plt.ylim( -1, 1 )
 
     for asset_Idx_Array_Idx in range( number_Of_Watched_Assets ):
-        plt.plot( day_Number_Vector, ma_Relative_ADri_Series_Array[ asset_Idx_Array_Idx ], label = "Asset " + str( asset_Idx_Array[ asset_Idx_Array_Idx ] ) )
+        plt.plot( day_Number_Vector, arithmetic_Drift_Series_Array[ asset_Idx_Array_Idx ], label = "Asset " + str( asset_Idx_Array[ asset_Idx_Array_Idx ] ) )
 
     if( number_Of_Watched_Assets <= 10 ):
         plt.legend()
