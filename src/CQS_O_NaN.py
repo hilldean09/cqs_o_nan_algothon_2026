@@ -338,29 +338,44 @@ def getAssetMARelativeArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_
 ##### Strategies #####
 
 
+# TODO: Write a little documentation 
+# explaining formulas
 def movingAverageCrossoverStrategy( prices_So_Far ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+
+    # TODO: make these global parameters 
+    # (so they can be moified and optimised in
+    # the future)
     Short_Window_Size = 10
     Long_Window_Size = 50
 
 
     positions = np.zeros( number_Of_Instruments)
 
+    # Dean - Note trading for 50 of the 250 days might be
+    # problematic. Note that my functions will still run
+    # even if the window size is greater than the available
+    # timesteps
     if number_Of_Timesteps < Long_Window_Size:
         return positions
 
     for asset_Idx in range( number_Of_Instruments ):
-        Short_MA = getAssetMovingAverage( prices_So_Far, asset_Idx, number_Of_Timesteps - 1, Short_Window_Size)
-        Long_MA = getAssetMovingAverage( prices_So_Far, asset_Idx, number_Of_Timesteps - 1, Long_Window_Size)
+        short_MA = getAssetMovingAverage( prices_So_Far, asset_Idx, number_Of_Timesteps - 1, Short_Window_Size)
+        long_MA = getAssetMovingAverage( prices_So_Far, asset_Idx, number_Of_Timesteps - 1, Long_Window_Size)
 
 
-        moving_Average_Signal = ( Short_MA - Long_MA )/ Long_MA
+        moving_Average_Signal = ( short_MA - long_MA )/ long_MA
 
         if( asset_Idx == 0 ):
             dollar_Position_Limit = 100000
         else:
             dollar_Position_Limit = 10000
 
+        # Dean - Consider a constant so we don't run
+        # the chance of betting the entire dollar
+        # limit at once in case the signal is high 
+        # eneough as the signal can be greater than 1
+        # (difference in short_MA - long_Ma > long_Ma
         positions[ asset_Idx ] = int( dollar_Position_Limit * moving_Average_Signal / prices_So_Far[ asset_Idx ][ -1 ])
         
     return positions
