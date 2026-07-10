@@ -13,8 +13,6 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
     scoreDefaultParam = 1.0
     prcAll = eval.loadPrices(pricesFile)
 
-
-
     parameter_Combination_Array_Dim = np.array( number_Of_Parameters, dtype = int )
     for parameter_Idx in range( number_Of_Parameters ):
         parameter_Combination_Array_Dim[ parameter_Idx ] = len( parameter_Value_Range_List[ parameter_Idx ] )
@@ -53,3 +51,15 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
         globals()[ parameter_Name_List[ parameter_Idx ] ] = max_Score_Parameters[ parameter_Idx ]
 
     return max_Score_Parameters
+
+
+# Change to run
+if __name__ == "__main__":
+    number_Of_Parameters = 2
+
+    parameter_Name_List = [ "g_ma_Crossover_Short_Window_Size", "g_ma_Crossover_Long_Window_Size" ]
+    parameter_Value_Range_List = [ range( 0, 50, 1 ), range( 0, 75, 1 ) ]
+
+    print( optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List ) )
+
+
