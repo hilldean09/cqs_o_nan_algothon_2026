@@ -299,7 +299,7 @@ def getAssetLogDrift( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Wind
 
     return log_Drift
 
-def getAssetLogMovementVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size ):
+def getAssetLogMovementVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
     
     latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
@@ -313,7 +313,7 @@ def getAssetLogMovementVolatility( prices_So_Far, asset_Idx, desired_Latest_Day,
 
     return log_Movement_Volatility
 
-def getAssetArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size, realized_Volatility_Window_Size ):
+def getAssetArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size ):
     log_Drift = getAssetLogDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size )
     log_Movement_Volatility = getAssetLogMovementVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size )
 
