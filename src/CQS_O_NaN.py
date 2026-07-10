@@ -299,8 +299,23 @@ def getAssetLogDrift( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Wind
 
     return log_Drift
 
+def getAssetLogMovementVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
+
+    window_Size = desired_Window_Size
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    log_Movement_Series = getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size )
+    log_Movement_Volatility = np.sqrt( np.mean( log_Movement_Series** 2 ) - ( np.mean( log_Movement_Series ) ) ** 2 )
+
+    return log_Movement_Volatility
+
 def getAssetArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size, realized_Volatility_Window_Size ):
     log_Drift = getAssetLogDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size )
+    log_Movement_Volatility = getAssetLogMovementVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size )
 
     arithmetic_Drift = log_Drift + ( realized_Volatility ** 2 ) / 2
 
