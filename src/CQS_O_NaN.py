@@ -294,7 +294,7 @@ def getAssetArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift
 
     return arithmetic_Drift
 
-def getMARelativeAssetArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_Day, moving_Average_Window_Size, drift_Window_Size, realized_Volatility_Window_Size ):
+def getMARelativeAssetArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_Day, moving_Average_Window_Size, realized_Volatility_Window_Size, drift_Window_Size ):
     arithmetic_Drift = getAssetArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size, realized_Volatility_Window_Size )
     moving_Average = getAssetMovingAverage( prices_So_Far, asset_Idx, desired_Latest_Day, moving_Average_Window_Size )
 
