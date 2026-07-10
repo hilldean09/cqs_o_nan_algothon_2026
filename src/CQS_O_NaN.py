@@ -217,6 +217,35 @@ def getAssetMovingAverage( prices_So_Far, asset_Idx, desired_Latest_Day, desired
 
     return moving_Average
 
+def movingAverageCrossoverStrategy( prices_So_Far ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    Short_Window_Size = 10
+    Long_Window_Size = 50
+
+
+    positions = np.zeros( number_Of_Instruments)
+
+    if number_Of_Timesteps < Long_Window_Size:
+        return positions
+
+    for asset_Idx in range( number_Of_Instruments ):
+        Short_MA = getAssetMovingAverage( prices_So_Far, asset_Idx, number_Of_Timesteps - 1, Short_Window_Size)
+        Long_MA = getAssetMovingAverage( prices_So_Far, asset_Idx, number_Of_Timesteps - 1, Long_Window_Size)
+
+
+        moving_Average_Signal = ( Short_MA - Long_MA )/ Long_MA
+
+        if( asset_Idx == 0 ):
+            dollar_Position_Limit = 100000
+        else:
+            dollar_Position_Limit = 10000
+
+        positions[ asset_Idx ] = int( dollar_Position_Limit * moving_Average_Signal / prices_So_Far[ asset_Idx ][ -1 ])
+        
+    return positions
+
+    
+
 # Realizaed Variance and Volatility #
 
 def getAssetRealizedVariance( prices_So_Far, asset_Idx : int, desired_Latest_Day : int, desired_Window_Size ):
