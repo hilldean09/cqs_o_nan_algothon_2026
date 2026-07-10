@@ -317,7 +317,7 @@ def getAssetArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift
     log_Drift = getAssetLogDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size )
     log_Movement_Volatility = getAssetLogMovementVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size )
 
-    arithmetic_Drift = log_Drift + ( realized_Volatility ** 2 ) / 2
+    arithmetic_Drift = log_Drift + ( log_Movement_Volatility ** 2 ) / 2
 
     return arithmetic_Drift
 
