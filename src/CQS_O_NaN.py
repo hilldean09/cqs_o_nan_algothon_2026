@@ -346,8 +346,8 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
     # TODO: make these global parameters 
     # (so they can be moified and optimised in
     # the future)
-    Short_Window_Size = 10
-    Long_Window_Size = 50
+    Short_Window_Size = 5
+    Long_Window_Size = 30
 
 
     positions = np.zeros( number_Of_Instruments)
@@ -364,7 +364,7 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
         long_MA = getAssetMovingAverage( prices_So_Far, asset_Idx, number_Of_Timesteps - 1, Long_Window_Size)
 
 
-        moving_Average_Signal = ( short_MA - long_MA )/ long_MA
+        moving_Average_Signal = - ( short_MA - long_MA )/ long_MA
 
         if( asset_Idx == 0 ):
             dollar_Position_Limit = 100000
