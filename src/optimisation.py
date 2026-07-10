@@ -10,17 +10,20 @@ import CQS_O_NaN as onan
 def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List, visualise = False ):
     number_Of_Parameters = len( parameter_Name_List )
 
+    # Copied from eval
+    pricesFile = "./prices.txt"
+    numTestDays = 250
     scoreDefaultParam = 1.0
     prcAll = eval.loadPrices(pricesFile)
 
-    parameter_Combination_Array_Dim = np.array( number_Of_Parameters, dtype = int )
+    parameter_Combination_Array_Dim = np.zeros( number_Of_Parameters, dtype = int )
     for parameter_Idx in range( number_Of_Parameters ):
         parameter_Combination_Array_Dim[ parameter_Idx ] = len( parameter_Value_Range_List[ parameter_Idx ] )
 
     if visualise == True:
         score_Array = np.zeros( list( parameter_Combination_Array_Dim ) )
 
-    parameter_Combination_Array = list( itertools.product( *parameter_Value_Range_List ) )
+    parameter_Combination_Array = np.asarray( list( itertools.product( *parameter_Value_Range_List ) ) )
     
     # Max score initial
     max_Score = -9999
@@ -28,8 +31,8 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
 
     parmaeter_Combination = np.zeros( number_Of_Parameters )
 
-    for parameter_Combination_Index in np.ndindex( parameter_Combination_Array_Dim ):
-        parameter_Combination = parameter_Combination_Array[ *parameter_Combination_Index ]
+    for iterative_Index, parameter_Combination_Index in enumerate( np.ndindex( *parameter_Combination_Array_Dim ) ):
+        parameter_Combination = parameter_Combination_Array[ iterative_Index ]
 
         # Updating global variables
         for parameter_Idx in range( number_Of_Parameters ):
