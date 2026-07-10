@@ -286,6 +286,24 @@ def getAssetLogDrift( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Wind
 
     return mean_Of_Log_Rate
 
+def getAssetArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size, realized_Volatility_Window_Size ):
+    log_Drift = getAssetLogDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size )
+    realized_Volatility = getAssetRealizedVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, realized_Volatility_Window_Size )
+
+    arithmetic_Drift = log_Drift + ( realized_Volatility ** 2 ) / 2
+
+    return arithmetic_Drift
+
+def getMARelativeAssetArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_Day, moving_Average_Window_Size, drift_Window_Size, realized_Volatility_Window_Size ):
+    arithmetic_Drift = getAssetArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size, realized_Volatility_Window_Size )
+    moving_Average = getAssetMovingAverage( prices_So_Far, asset_Idx, desired_Latest_Day, moving_Average_Window_Size )
+
+    ma_Relative_Arithmetic_Drift = arithmetic_Drift / moving_Average
+
+    return ma_Relative_Arithmetic_Drift
+
+
+
 
 
 
