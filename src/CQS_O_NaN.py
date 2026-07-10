@@ -264,7 +264,7 @@ def getAssetMARelativeRealizedVolatility( prices_So_Far, asset_Idx, desired_Late
     return ( realized_Volatility / moving_Average )
 
 # Appreciation #
-def getAssetLogDrift( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
+def getAssetLogMovementSeries( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
     
     latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
@@ -278,17 +278,29 @@ def getAssetLogDrift( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Wind
 
     window_Start_Day = int( latest_Day - window_Size + 1 )
 
-    sum_Of_Log_Rate = 0
+    log_Movement_Series = np.zeros( ( number_Of_Instruments, window_Size ) )
+
     for start_Day_Offset in range( window_Size - 1 ):
-        sum_Of_Log_Rate += np.log( prices_So_Far[ asset_Idx ][ window_Start_Day + start_Day_Offset ] / prices_So_Far[ asset_Idx ][ window_Start_Day + start_Day_Offset + 1 ] )
+        log_Movement_Series[ start_Day_Offset ] = np.log( prices_So_Far[ asset_Idx ][ window_Start_Day + start_Day_Offset + 1 ] / prices_So_Far[ asset_Idx ][ window_Start_Day + start_Day_Offset ] )
 
-    mean_Of_Log_Rate = sum_Of_Log_Rate / ( window_Size + 1 )
+    return log_Movement_Series
 
-    return mean_Of_Log_Rate
+def getAssetLogDrift( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
+
+    window_Size = desired_Window_Size
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    log_Movement_Series = getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size )
+    log_Drift = np.mean( log_Movement_Series )
+
+    return log_Drift
 
 def getAssetArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size, realized_Volatility_Window_Size ):
     log_Drift = getAssetLogDrift( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size )
-    realized_Volatility = getAssetRealizedVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, realized_Volatility_Window_Size )
 
     arithmetic_Drift = log_Drift + ( realized_Volatility ** 2 ) / 2
 

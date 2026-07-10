@@ -230,12 +230,11 @@ def runArithmeticDriftVisualisation():
 
     for asset_Idx_Array_Idx in range( number_Of_Watched_Assets ):
         for timestep_Idx in range( number_Of_Timesteps ):
-            ma_Relative_ADri_Series_Array[ asset_Idx_Array_Idx ][ timestep_Idx ] = onan.getAssetArithmeticDrift( prices_Values, asset_Idx_Array[ asset_Idx_Array_Idx ], timestep_Idx,arithmetic_Drift_Window_Size, realized_Volatility_Window_Size )
+            arithmetic_Drift_Series_Array [ asset_Idx_Array_Idx ][ timestep_Idx ] = onan.getAssetArithmeticDrift( prices_Values, asset_Idx_Array[ asset_Idx_Array_Idx ], timestep_Idx,arithmetic_Drift_Window_Size, realized_Volatility_Window_Size )
 
     # Visualising
     plt.suptitle( "Arithmetic Drift" )
     plt.title( "realized_Volatility_Window_Size = " + str( realized_Volatility_Window_Size ) + " - arithmetic_Drift_Window_Size = " + str( arithmetic_Drift_Window_Size ) )
-    plt.ylim( -1, 1 )
 
     for asset_Idx_Array_Idx in range( number_Of_Watched_Assets ):
         plt.plot( day_Number_Vector, arithmetic_Drift_Series_Array[ asset_Idx_Array_Idx ], label = "Asset " + str( asset_Idx_Array[ asset_Idx_Array_Idx ] ) )
