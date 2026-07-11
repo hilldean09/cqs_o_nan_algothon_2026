@@ -1,5 +1,4 @@
 import numpy as np
-import torch
 import itertools
 
 import eval
@@ -27,16 +26,18 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
     
     # Max score initial
     max_Score = -9999
-    max_Score_Parameters = np.zeros( number_Of_Parameters )
 
     parmaeter_Combination = np.zeros( number_Of_Parameters )
+    nax_Score_Parameters = np.copy( parmaeter_Combination )
+
+    was_Updated = False
 
     for iterative_Index, parameter_Combination_Index in enumerate( np.ndindex( *parameter_Combination_Array_Dim ) ):
         parameter_Combination = parameter_Combination_Array[ iterative_Index ]
 
         # Updating global variables
         for parameter_Idx in range( number_Of_Parameters ):
-            globals()[ parameter_Name_List[ parameter_Idx ] ] = parameter_Combination[ parameter_Idx ]
+            onan.setGlobalVariable( parameter_Name_List[ parameter_Idx ], parameter_Combination[ parameter_Idx ] )
 
         # Copied from eval.py
         meanpl, ret, plstd, sharpe, dvol = eval.calcPL(prcAll, numTestDays)
@@ -47,13 +48,16 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
 
         if( score > max_Score ):
             max_Score = score
-            max_Score_Parameters = parameter_Combination
+            max_Score_Parameters = np.copy( parmaeter_Combination )
+            was_Updated = True
 
     # TODO: Implemenet visual
 
     for parameter_Idx in range( number_Of_Parameters ):
-        globals()[ parameter_Name_List[ parameter_Idx ] ] = max_Score_Parameters[ parameter_Idx ]
+        globals()[ "onan." + parameter_Name_List[ parameter_Idx ] ] = max_Score_Parameters[ parameter_Idx ]
 
+    print( max_Score )
+    print( max_Score_Parameters )
     return max_Score_Parameters
 
 
@@ -62,8 +66,8 @@ if __name__ == "__main__":
     number_Of_Parameters = 2
 
     parameter_Name_List = [ "g_ma_Crossover_Short_Window_Size", "g_ma_Crossover_Long_Window_Size" ]
-    parameter_Value_Range_List = [ range( 0, 50, 1 ), range( 0, 75, 1 ) ]
+    parameter_Value_Range_List = [ range( 1, 50, 2 ), range( 1, 75, 5 ) ]
 
-    print( optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List ) )
+    print( optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List, visualise = True ) )
 
 

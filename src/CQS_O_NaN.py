@@ -385,3 +385,8 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
     return positions
 
 
+##### External #####
+
+def setGlobalVariable( name, value ):
+    globals()[ name ] = value
+
