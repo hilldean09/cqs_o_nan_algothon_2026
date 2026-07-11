@@ -339,8 +339,8 @@ def getAssetMARelativeArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_
 
 
 # Moving Average Crossover Parameters
-g_ma_Crossover_Short_Window_Size = 5
-g_ma_Crossover_Long_Window_Size = 30
+g_ma_Crossover_Short_Window_Size = 1
+g_ma_Crossover_Long_Window_Size = 26
 
 # TODO: Write a little documentation 
 # explaining formulas
