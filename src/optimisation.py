@@ -69,7 +69,7 @@ if __name__ == "__main__":
     number_Of_Parameters = 2
 
     parameter_Name_List = [ "g_ma_Crossover_Short_Window_Size", "g_ma_Crossover_Long_Window_Size" ]
-    parameter_Value_Range_List = [ range( 1, 50, 2 ), range( 1, 75, 5 ) ]
+    parameter_Value_Range_List = [ range( 1, 50, 1 ), range( 1, 75, 2 ) ]
 
     optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List, visualise = True )
 
