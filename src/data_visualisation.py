@@ -81,34 +81,48 @@ def runPearsonCorrelationCoefficientVisualisation():
 
     day_Number_Vector = range( number_Of_Timesteps )
 
+    do_Display_Average_String = input( "Do display average (y/n): " )
     window_Size = int( input( "Select window size : " ) )
+
+    if( do_Display_Average_String == "y" ):
+       do_Display_Average = True
+    else:
+        do_Display_Average = False
+
     print( " " )
 
     colour_Map = "cool"
 
     correlation_Matrix = np.zeros( ( number_Of_Instruments, number_Of_Instruments ) )
+    correlation_Mean_Series = np.zeros( number_Of_Timesteps )
 
-    plt.suptitle( "Pearson Correlation Matrix" )
+    fig, ax = plt.subplots( 1, 2 )
+
+    fig.suptitle( "Pearson Correlation Matrix" )
     plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( 0 ) )
-    plt.imshow( correlation_Matrix, cmap = colour_Map )
+    ax[ 0 ].imshow( correlation_Matrix, cmap = colour_Map )
     plt.show(block=False)
 
     for day_Num in day_Number_Vector:
         correlation_Matrix = onan.getPearsonCorrelationMatrix( prices_Values, day_Num, window_Size )
+        correlation_Mean = np.mean( correlation_Matrix )
+        correlation_Mean_Series[ day_Num ] = correlation_Mean
+
         normalised_Correlation_Matrix = ( correlation_Matrix / 2 ) + 0.5
 
         # Updating plot
-        plt.suptitle( "Pearson Correlation Matrix" )
+        fig.suptitle( "Pearson Correlation Matrix" )
         plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( day_Num ) )
-        plt.imshow( normalised_Correlation_Matrix, cmap = colour_Map )
+        ax[ 0 ].imshow( correlation_Matrix, cmap = colour_Map )
+        ax[ 1 ].plot( day_Number_Vector[ 0:day_Num:1 ], correlation_Mean_Series[ 0:day_Num:1 ] )
 
-        plt.draw()
-        plt.pause( 0.001 )
-        plt.clf()
+        fig.canvas.draw()
+        fig.canvas.flush_events()
 
-    plt.suptitle( "Pearson Correlation Matrix" )
+    fig.suptitle( "Pearson Correlation Matrix" )
     plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( day_Num ) )
-    plt.imshow( normalised_Correlation_Matrix, cmap = colour_Map  )
+    ax[ 0 ].imshow( correlation_Matrix, cmap = colour_Map )
+    ax[ 1 ].plot( day_Number_Vector, correlation_Mean_Series )
     plt.show()
 
 def runAssetWithMultipleMovingAveragesVisualisation():
