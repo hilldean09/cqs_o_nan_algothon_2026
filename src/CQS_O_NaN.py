@@ -339,13 +339,8 @@ def getAssetMARelativeArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_
 
     return ma_Relative_Arithmetic_Drift
 
-# Maret Average $
-def getMarketMean( prices_So_Far, day_Num ):
-    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
-    day_Num = min( day_Num, number_Of_Timesteps - 1 )
-    market_Mean = np.mean( prices_So_Far[ : ][ day_Num ] )
+# Maret Average #
 
-    return market_Mean
 
 
 ##### Strategies #####
