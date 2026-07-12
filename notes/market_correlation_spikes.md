@@ -24,3 +24,8 @@ Given our uncertainty in this relationship structure, we'd like to investigate b
 # Steps
 
 We'd like to first implement functions to return the metrics we are interested in investigating. We'd like to then implement a general function to detect lead-lag relationships between two arbitrary 1-dimensional numpy arrays of equal size. We then perform brute force analysis.
+
+# Updates
+
+Dean :
+- I have found that while there are non-instantaneous market correlation spikes (though still short lived) the average markets returns appear rather random still. This is an interesting result and could indicate that the market correlation spikes are more subtle than expected and thus could be a lesser known signal to other teams. This does not discount it's possible value but possibly even encourages it.
