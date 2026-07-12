@@ -358,7 +358,7 @@ def getMarketMeanLogReturns( prices_So_Far, day_Num ):
 
     return sum_Of_Log_Returns / number_Of_Instruments
 
-def getMarketMovingMeanLogReturns( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size ):
+def getMarketMovingMeanLogReturns( prices_So_Far, desired_Latest_Day, desired_Window_Size ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
     
     latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
@@ -369,12 +369,13 @@ def getMarketMovingMeanLogReturns( prices_So_Far, asset_Idx, desired_Latest_Day,
     # window size is not available
     if( latest_Day - window_Size + 1 < 0 ):
         window_Size = latest_Day + 1
+
     window_Start_Day = int( latest_Day - window_Size + 1 )
 
     sum_Of_Mean_Log_Returns = 0
     
-    for day_Offset in range( window_Start_Day, latest_Day ):
-        sum_Of_Mean_Log_Returns += getMarketMeanLogReturns( prices_So_Far, day_Num )
+    for day_Offset in range( window_Start_Day, latest_Day + 1, 1 ):
+        sum_Of_Mean_Log_Returns += getMarketMeanLogReturns( prices_So_Far, window_Start_Day + day_Offset )
 
     mean_Of_Mean_Log_Retursn = sum_Of_Mean_Log_Returns / window_Size
 

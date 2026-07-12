@@ -16,6 +16,7 @@ def runDataVisualisationMenu():
     print( "\t2 : Asset with Multiple Moving Averages" )
     print( "\t3 : Moving Average Relaive Realized Volatility" )
     print( "\t4 : Arithmetic Drift" )
+    print( "\t5 : Market Mean Log Returns" )
     print( " " )
     print( "Enter choice : ", end="" )
 
@@ -34,6 +35,8 @@ def runDataVisualisationMenu():
         runMovingAverageRelativeVolatilityVisualisation()
     elif( user_Visualisation_Choice_Int == 4 ):
         runArithmeticDriftVisualisation()
+    elif( user_Visualisation_Choice_Int == 5 ):
+        runMarketMeanLogReturns()
 
 
 
@@ -263,6 +266,35 @@ def runArithmeticDriftVisualisation():
         plt.legend()
 
     plt.show()
+
+def runMarketMeanLogReturns():
+    global g_data_File_Name
+    prices_Data = pd.read_csv( g_data_File_Name, sep=r"\s+", header=0, index_col=None )
+    prices_Values = ( prices_Data.values ).T
+
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_Values.shape
+
+    window_Size = int( input( "Enter window size : " ) )
+
+    minimum_Moving_Start_Day = window_Size
+    day_Number_Vector = range( minimum_Moving_Start_Day, number_Of_Timesteps, 1 )
+
+    market_Mean_Log_Returns = np.zeros( number_Of_Timesteps - minimum_Moving_Start_Day )
+    market_Moving_Mean_Log_Returns = np.zeros( number_Of_Timesteps - minimum_Moving_Start_Day )
+    for timestep_Idx in day_Number_Vector:
+        market_Mean_Log_Returns[ timestep_Idx - minimum_Moving_Start_Day ] = onan.getMarketMeanLogReturns( prices_Values, timestep_Idx )
+        market_Moving_Mean_Log_Returns[ timestep_Idx - minimum_Moving_Start_Day ] = onan.getMarketMovingMeanLogReturns( prices_Values, timestep_Idx, window_Size )
+
+    fig, ax = plt.subplots( 1, 2 )
+    fig.suptitle( "Market Mean Log Returns" )
+    ax[ 0 ].set_title( "Daily Mean Log Returns" )
+    ax[ 1 ].set_title( "Moving Mean Log Returns" )
+
+    ax[ 0 ].plot( day_Number_Vector, market_Mean_Log_Returns )
+    ax[ 1 ].plot( day_Number_Vector, market_Moving_Mean_Log_Returns )
+
+    plt.show()
+
 
 
 if __name__ == "__main__":
