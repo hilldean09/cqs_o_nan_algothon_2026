@@ -339,8 +339,16 @@ def getAssetMARelativeArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_
 
     return ma_Relative_Arithmetic_Drift
 
-# Maret Average #
+# Maret Average Returns #
 
+def getMarketMeanLogReturns( prices_So_Far, day_Num ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    day_Num = min( day_Num, number_Of_Timesteps - 1 )
+
+    for asset_Idx in range( number_Of_Instruments ):
+        sum_Of_Log_Returns = np.log( prices_So_Far[ asset_Idx ][ day_Num ] / prices_So_Far[ asset_Idx ][ day_Num - 1 ] )
+
+    return sum_Of_Log_Returns / number_Of_Instruments
 
 
 ##### Strategies #####
