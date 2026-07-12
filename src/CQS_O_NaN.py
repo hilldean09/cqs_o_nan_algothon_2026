@@ -199,6 +199,12 @@ def getPearsonCorrelationMatrix( prices_So_Far, desired_Latest_Day, desired_Wind
 
     return correlation_Matrix
 
+def getCorrelationMatrixAndAverageCorrelation( prices_So_Far, desired_Latest_Day, desired_Window_Size ):
+    correlation_Matrix = getPearsonCorrelationMatrix( prices_So_Far, desired_Latest_Day, desired_Window_Size )
+    correlation_Mean = np.mean( correlation_Matrix )
+
+    return correlation_Matrix, correlation_Mean 
+
 # Moving Average #
 def getAssetMovingAverage( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
