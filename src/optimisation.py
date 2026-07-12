@@ -68,8 +68,8 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
 if __name__ == "__main__":
     number_Of_Parameters = 2
 
-    parameter_Name_List = [ "g_ma_Crossover_Short_Window_Size", "g_ma_Crossover_Long_Window_Size" ]
-    parameter_Value_Range_List = [ range( 1, 50, 1 ), range( 1, 75, 2 ) ]
+    parameter_Name_List = [ "MIN_HIST", "ENTER_K", "EXIT_K" ]
+    parameter_Value_Range_List = [ range( 1, 50, 2 ), range( 1, 20, 1 ), range( 1, 25, 1 ) ]
 
     optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List, visualise = True )
 

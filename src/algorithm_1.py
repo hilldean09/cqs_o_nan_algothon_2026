@@ -101,3 +101,7 @@ def getMyPosition(prcSoFar):
     newPos = np.clip(targetShares, -posLimitShares, posLimitShares)
     return newPos.astype(int)
 
+
+def setGlobalVariable( name, value ):
+    globals()[ name ] = value
+
