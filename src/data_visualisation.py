@@ -94,9 +94,14 @@ def runPearsonCorrelationCoefficientVisualisation():
     colour_Map = "cool"
 
     correlation_Matrix = np.zeros( ( number_Of_Instruments, number_Of_Instruments ) )
-    correlation_Mean_Series = np.zeros( number_Of_Timesteps )
+    if( do_Display_Average ):
+        correlation_Mean_Series = np.zeros( number_Of_Timesteps )
 
-    fig, ax = plt.subplots( 1, 2 )
+    if( do_Display_Average ):
+        fig, ax = plt.subplots( 1, 2 )
+    else:
+        fig, ax = plt.subplots( 1, 1 )
+        ax = list( { ax} )
 
     fig.suptitle( "Pearson Correlation Matrix" )
     plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( 0 ) )
@@ -105,8 +110,9 @@ def runPearsonCorrelationCoefficientVisualisation():
 
     for day_Num in day_Number_Vector:
         correlation_Matrix = onan.getPearsonCorrelationMatrix( prices_Values, day_Num, window_Size )
-        correlation_Mean = np.mean( correlation_Matrix )
-        correlation_Mean_Series[ day_Num ] = correlation_Mean
+        if( do_Display_Average ):
+            correlation_Mean = np.mean( correlation_Matrix )
+            correlation_Mean_Series[ day_Num ] = correlation_Mean
 
         normalised_Correlation_Matrix = ( correlation_Matrix / 2 ) + 0.5
 
@@ -114,7 +120,8 @@ def runPearsonCorrelationCoefficientVisualisation():
         fig.suptitle( "Pearson Correlation Matrix" )
         plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( day_Num ) )
         ax[ 0 ].imshow( correlation_Matrix, cmap = colour_Map )
-        ax[ 1 ].plot( day_Number_Vector[ 0:day_Num:1 ], correlation_Mean_Series[ 0:day_Num:1 ] )
+        if( do_Display_Average ):
+            ax[ 1 ].plot( day_Number_Vector[ 0:day_Num:1 ], correlation_Mean_Series[ 0:day_Num:1 ] )
 
         fig.canvas.draw()
         fig.canvas.flush_events()
@@ -122,7 +129,8 @@ def runPearsonCorrelationCoefficientVisualisation():
     fig.suptitle( "Pearson Correlation Matrix" )
     plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( day_Num ) )
     ax[ 0 ].imshow( correlation_Matrix, cmap = colour_Map )
-    ax[ 1 ].plot( day_Number_Vector, correlation_Mean_Series )
+    if( do_Display_Average ):
+        ax[ 1 ].plot( day_Number_Vector, correlation_Mean_Series )
     plt.show()
 
 def runAssetWithMultipleMovingAveragesVisualisation():
