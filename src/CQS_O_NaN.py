@@ -304,6 +304,9 @@ def getAssetLogDrift( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Wind
     # Setting the window to the maximum 
     # available size if the entire desired
     # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
     log_Movement_Series = getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size )
     log_Drift = np.mean( log_Movement_Series )
 
@@ -318,6 +321,9 @@ def getAssetLogMovementVolatility( prices_So_Far, asset_Idx, desired_Latest_Day,
     # Setting the window to the maximum 
     # available size if the entire desired
     # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
     log_Movement_Series = getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size )
     log_Movement_Volatility = np.sqrt( np.mean( log_Movement_Series** 2 ) - ( np.mean( log_Movement_Series ) ) ** 2 )
 
@@ -345,10 +351,34 @@ def getMarketMeanLogReturns( prices_So_Far, day_Num ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
     day_Num = min( day_Num, number_Of_Timesteps - 1 )
 
+    sum_Of_Log_Returns = 0
+
     for asset_Idx in range( number_Of_Instruments ):
-        sum_Of_Log_Returns = np.log( prices_So_Far[ asset_Idx ][ day_Num ] / prices_So_Far[ asset_Idx ][ day_Num - 1 ] )
+        sum_Of_Log_Returns += np.log( prices_So_Far[ asset_Idx ][ day_Num ] / prices_So_Far[ asset_Idx ][ day_Num - 1 ] )
 
     return sum_Of_Log_Returns / number_Of_Instruments
+
+def getMarketMovingMeanLogReturns( prices_So_Far, asset_Idx, desired_Latest_Day, drift_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
+
+    window_Size = desired_Window_Size
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+    window_Start_Day = int( latest_Day - window_Size + 1 )
+
+    sum_Of_Mean_Log_Returns = 0
+    
+    for day_Offset in range( window_Start_Day, latest_Day ):
+        sum_Of_Mean_Log_Returns += getMarketMeanLogReturns( prices_So_Far, day_Num )
+
+    mean_Of_Mean_Log_Retursn = sum_Of_Mean_Log_Returns / window_Size
+
+    return mean_Of_Mean_Log_Retursn
 
 
 ##### Strategies #####
