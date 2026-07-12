@@ -14,9 +14,9 @@ dlrLimit = np.full(nInst, 10_000.0) # limits
 dlrLimit[0] = 100_000.0
 EPS = 1e-9 # prevent divide-by-zero in standardization
 
-MIN_HIST = 60      # minimum days of return history before trading -> estimates r/s between all 51 instruments
-ENTER_K = 10        # an asset must rank in the top ENTER_K |signal| to open a new position
-EXIT_K = 16          # an already-held asset stays as long as it's still in the top EXIT_K
+MIN_HIST = 1      # minimum days of return history before trading -> estimates r/s between all 51 instruments
+ENTER_K = 12        # an asset must rank in the top ENTER_K |signal| to open a new position
+EXIT_K = 17         # an already-held asset stays as long as it's still in the top EXIT_K
                      # (hysteresis - cuts needless flip-flopping / commission drag)
 
 _heldSet = set()     # persists across calls: which assets currently carry conviction bets

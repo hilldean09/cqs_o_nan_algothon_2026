@@ -2,7 +2,7 @@ import numpy as np
 import itertools
 
 import eval
-import CQS_O_NaN as onan
+import algorithm_1 as onan
 
 
 # Note to self : use globals()[ name ]
@@ -52,6 +52,7 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
             for parameter_Idx in range( number_Of_Parameters ):
                 max_Score_Parameters[ parameter_Idx ] = parameter_Combination[ parameter_Idx ]
 
+            print( max_Score_Parameters )
             was_Updated = True
 
     # TODO: Implemenet visual
@@ -69,8 +70,8 @@ if __name__ == "__main__":
     number_Of_Parameters = 2
 
     parameter_Name_List = [ "MIN_HIST", "ENTER_K", "EXIT_K" ]
-    parameter_Value_Range_List = [ range( 1, 50, 2 ), range( 1, 20, 1 ), range( 1, 25, 1 ) ]
+    parameter_Value_Range_List = [ range( 1, 70, 3 ), range( 1, 20, 1 ), range( 1, 25, 2 ) ]
 
-    optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List, visualise = True )
+    optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List, visualise = False )
 
 
