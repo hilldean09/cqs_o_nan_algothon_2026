@@ -374,7 +374,7 @@ def getMarketMovingMeanLogReturns( prices_So_Far, desired_Latest_Day, desired_Wi
 
     sum_Of_Mean_Log_Returns = 0.0
     
-    for day_Offset in range( window_Start_Day, latest_Day + 1, 1 ):
+    for day_Offset in range( window_Size ):
         sum_Of_Mean_Log_Returns += getMarketMeanLogReturns( prices_So_Far, window_Start_Day + day_Offset )
 
     mean_Of_Mean_Log_Retursn = sum_Of_Mean_Log_Returns / window_Size
