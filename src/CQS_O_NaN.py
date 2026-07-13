@@ -372,12 +372,15 @@ def getMarketMovingMeanLogReturns( prices_So_Far, desired_Latest_Day, desired_Wi
 
     window_Start_Day = int( latest_Day - window_Size + 1 )
 
-    sum_Of_Mean_Log_Returns = 0
+    sum_Of_Mean_Log_Returns = 0.0
     
     for day_Offset in range( window_Start_Day, latest_Day + 1, 1 ):
         sum_Of_Mean_Log_Returns += getMarketMeanLogReturns( prices_So_Far, window_Start_Day + day_Offset )
 
     mean_Of_Mean_Log_Retursn = sum_Of_Mean_Log_Returns / window_Size
+
+    if( mean_Of_Mean_Log_Retursn == 0.0 ):
+        logWarningHeader( "getMarketMovingMeanLogReturns",  "Returning 0" )
 
     return mean_Of_Mean_Log_Retursn
 
