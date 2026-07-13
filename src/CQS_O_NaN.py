@@ -384,6 +384,29 @@ def getMarketMovingMeanLogReturns( prices_So_Far, desired_Latest_Day, desired_Wi
 
     return mean_Of_Mean_Log_Retursn
 
+# Lead-Lag Correlation #
+# Reference : https://financialnoob.substack.com/p/statistical-arbitrage-with-lead-lag
+#           : and mentioned paper
+
+def getSeriesLaggedCoefficient( first_Series, second_Series, lag ):
+    correlation = 0.0
+
+    if l > 0:
+        correlation = np.corrcoef( first_Series[ lag: ].T, second_Series[ :-lag ].T )[ 0 ][ 1 ]
+    elif l = 0:
+        correlation = np.corrcoef( first_Series.T, second_Series.T )[ 0 ][ 1 ]
+    elif l < 0:
+        correlation = np.corrcoef( first_Series[ :lag ].T, second_Series[ -lag: ].T )[ 0 ][ 1 ]
+
+    return correlation
+
+def getSeriesC1Coefficient( first_Series, second_Series, max_Lag ):
+    # Defining a correlation dictionary comprehension
+    correlations = { lag: getSeriesLaggedCoefficient( first_Series, second_Series, lag ) for lag in range( -max_Lag, max_Lag + 1, 1 ) }
+
+    c1_coefficient = max( correlations, key = correlations.get )
+
+    return c1_coefficient
 
 ##### Strategies #####
 
