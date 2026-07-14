@@ -402,11 +402,38 @@ def getSeriesLaggedCoefficient( first_Series, second_Series, lag ):
 
 def getSeriesC1Coefficient( first_Series, second_Series, max_Lag ):
     # Defining a correlation dictionary comprehension
-    correlations = { lag: getSeriesLaggedCoefficient( first_Series, second_Series, lag ) for lag in range( -max_Lag, max_Lag + 1, 1 ) }
+    correlations = { lag: np.abs( getSeriesLaggedCoefficient( first_Series, second_Series, lag ) ) for lag in range( -max_Lag, max_Lag + 1, 1 ) }
 
-    c1_coefficient = max( correlations, key = correlations.get )
+    c1_Coefficient = max( correlations, key = correlations.get )
 
-    return c1_coefficient
+    return c1_Coefficient
+
+def getAssetToMarketMeanCorrelationC1LeadLag( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size, desired_Correlation_Window_Size, max_Lag ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
+
+    window_Size = desired_Window_Size
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
+    window_Start_Day = int( latest_Day - window_Size + 1 )
+    
+    market_Mean_Correlation_Series = np.zeros( window_Size )
+    asset_Log_Returns_Series = np.zeros( window_Size )
+
+    for day_Offset in range( window_Size ):
+        market_Mean_Correlation_Series[ day_Offset ] = np.mean( getPearsonCorrelationMatrix( prices_So_Far, latest_Day, desired_Correlation_Window_Size ) )
+        asset_Log_Returns_Series[ day_Offset ] = getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size )
+
+    c1_Coefficient = getSeriesC1Coefficient( asset_Log_Returns_Series, market_Mean_Correlation_Series, max_Lag )
+    c1_Coefficient_Correlation = getSeriesLaggedCoefficient( asset_Log_Returns_Series, market_Mean_Correlation_Series, c1_Coefficient )
+
+    return c1_Coefficient, c1_Coefficient_Correlation
+
 
 ##### Strategies #####
 
