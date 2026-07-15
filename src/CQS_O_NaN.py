@@ -393,7 +393,7 @@ def getSeriesLaggedCoefficient( first_Series, second_Series, lag ):
 
     if lag > 0:
         correlation = np.corrcoef( first_Series[ lag: ].T, second_Series[ :-lag ].T )[ 0 ][ 1 ]
-    elif l = 0:
+    elif lag == 0:
         correlation = np.corrcoef( first_Series.T, second_Series.T )[ 0 ][ 1 ]
     elif lag < 0:
         correlation = np.corrcoef( first_Series[ :lag ].T, second_Series[ -lag: ].T )[ 0 ][ 1 ]
@@ -427,7 +427,7 @@ def getAssetToMarketMeanCorrelationC1LeadLag( prices_So_Far, asset_Idx, desired_
 
     for day_Offset in range( window_Size ):
         market_Mean_Correlation_Series[ day_Offset ] = np.mean( getPearsonCorrelationMatrix( prices_So_Far, latest_Day, desired_Correlation_Window_Size ) )
-        asset_Log_Returns_Series[ day_Offset ] = getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size )
+        asset_Log_Returns_Series = getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size )
 
     c1_Coefficient = getSeriesC1Coefficient( asset_Log_Returns_Series, market_Mean_Correlation_Series, max_Lag )
     c1_Coefficient_Correlation = getSeriesLaggedCoefficient( asset_Log_Returns_Series, market_Mean_Correlation_Series, c1_Coefficient )
