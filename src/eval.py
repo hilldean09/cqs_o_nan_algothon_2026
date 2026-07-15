@@ -6,7 +6,7 @@ Participants: write getMyPosition(prcSoFar) in teamName.py and update the import
 
 import numpy as np
 import pandas as pd
-from CQS_O_NaN import getMyPosition as getPosition
+from CQS_O_NaN_candidate import getMyPosition as getPosition
 
 nInst = 0
 nt = 0

@@ -391,11 +391,11 @@ def getMarketMovingMeanLogReturns( prices_So_Far, desired_Latest_Day, desired_Wi
 def getSeriesLaggedCoefficient( first_Series, second_Series, lag ):
     correlation = 0.0
 
-    if l > 0:
+    if lag > 0:
         correlation = np.corrcoef( first_Series[ lag: ].T, second_Series[ :-lag ].T )[ 0 ][ 1 ]
-    elif l == 0:
+    elif l = 0:
         correlation = np.corrcoef( first_Series.T, second_Series.T )[ 0 ][ 1 ]
-    elif l < 0:
+    elif lag < 0:
         correlation = np.corrcoef( first_Series[ :lag ].T, second_Series[ -lag: ].T )[ 0 ][ 1 ]
 
     return correlation
@@ -489,4 +489,3 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 
 def setGlobalVariable( name, value ):
     globals()[ name ] = value
-
