@@ -17,6 +17,7 @@ def runDataVisualisationMenu():
     print( "\t3 : Moving Average Relaive Realized Volatility" )
     print( "\t4 : Arithmetic Drift" )
     print( "\t5 : Market Mean Log Returns" )
+    print( "\t6 : Asset To Market Correlation Lead Lag" )
     print( " " )
     print( "Enter choice : ", end="" )
 
@@ -37,6 +38,8 @@ def runDataVisualisationMenu():
         runArithmeticDriftVisualisation()
     elif( user_Visualisation_Choice_Int == 5 ):
         runMarketMeanLogReturns()
+    elif( user_Visualisation_Choice_Int == 6 ):
+        runAssetToMarketCorrelationLeadLagVisualisation()
 
 
 
@@ -294,6 +297,62 @@ def runMarketMeanLogReturns():
     ax[ 1 ].plot( day_Number_Vector, market_Moving_Mean_Log_Returns )
 
     plt.show()
+
+def runAssetToMarketCorrelationLeadLagVisualisation():
+    global g_data_File_Name
+    prices_Data = pd.read_csv( g_data_File_Name, sep=r"\s+", header=0, index_col=None )
+    prices_Values = ( prices_Data.values ).T
+
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_Values.shape
+
+    day_Number_Vector = range( number_Of_Timesteps )
+
+    number_Of_Watched_Assets_String = input( "Enter number of assets to watch (or all): " )
+    number_Of_Watched_Assets = 0
+
+    if( number_Of_Watched_Assets_String == "all" ):
+        # All case
+        number_Of_Watched_Assets = number_Of_Instruments
+        asset_Idx_Array = np.asarray( range( number_Of_Watched_Assets ) )
+    else:
+        # Integer case
+        number_Of_Watched_Assets = int( number_Of_Watched_Assets_String )
+        asset_Idx_Array = np.zeros( number_Of_Watched_Assets, dtype=int )
+
+        for asset_Idx_Selection_Idx in range( number_Of_Watched_Assets ):
+            asset_Idx_Array[ asset_Idx_Selection_Idx ] = int( input( "Enter asset index for asset selection " + str( asset_Idx_Selection_Idx ) + " : " ) )
+
+    lead_Lag_Window_Size = int( input( "Enter lead-lag window size : " ) )
+    correlation_Window_Size = int( input( "Enter correlation window size : " ) )
+    max_Lag = int( input( "Enter max_Lag : " ) )
+
+    asset_To_Market_Mean_Correlation_C1_Coefficient_Series = np.zeros( ( number_Of_Watched_Assets, number_Of_Timesteps ) )
+    asset_To_Market_Mean_Correlation_Lagged_Correlation_Series = np.zeros( ( number_Of_Watched_Assets, number_Of_Timesteps ) )
+    # Populating series
+    for asset_Idx in range( number_Of_Watched_Assets ):
+        for timestep_Idx in range( number_Of_Timesteps ):
+            tmp_C1_Coefficient, tmp_C1_Coefficient_Correlation = onan.getAssetToMarketMeanCorrelationC1LeadLag( prices_Values, asset_Idx, timestep_Idx, lead_Lag_Window_Size, correlation_Window_Size, max_Lag )
+            asset_To_Market_Mean_Correlation_C1_Coefficient_Series[ asset_Idx, timestep_Idx ] = tmp_C1_Coefficient 
+            asset_To_Market_Mean_Correlation_Lagged_Correlation_Series[ asset_Idx, timestep_Idx ] = tmp_C1_Coefficient_Correlation
+
+    fig, ax = plt.subplots( 1, 2 )
+
+    fig.suptitle( "Asset To Market Mean Correlation Lagged Correlation Analysis" )
+    ax[ 0 ].set_title( "C1 Coefficient" )
+    ax[ 0 ].set_title( "C1 Coefficient Correlation" )
+
+    for asset_Idx in range( number_Of_Watched_Assets ):
+        ax[ 0 ].plot( day_Number_Vector, asset_To_Market_Mean_Correlation_C1_Coefficient_Series[ asset_Idx ], label = "Asset " + str( asset_Idx ) )
+        ax[ 1 ].plot( day_Number_Vector, asset_To_Market_Mean_Correlation_Lagged_Correlation_Series[ asset_Idx ], label = "Asset " + str( asset_Idx ) )
+
+    if( number_Of_Watched_Assets < 10 ):
+        ax[ 0 ].legned()
+        ax[ 1 ].legned()
+
+    plt.show()
+
+
+
 
 
 

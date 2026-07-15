@@ -393,7 +393,7 @@ def getSeriesLaggedCoefficient( first_Series, second_Series, lag ):
 
     if l > 0:
         correlation = np.corrcoef( first_Series[ lag: ].T, second_Series[ :-lag ].T )[ 0 ][ 1 ]
-    elif l = 0:
+    elif l == 0:
         correlation = np.corrcoef( first_Series.T, second_Series.T )[ 0 ][ 1 ]
     elif l < 0:
         correlation = np.corrcoef( first_Series[ :lag ].T, second_Series[ -lag: ].T )[ 0 ][ 1 ]
