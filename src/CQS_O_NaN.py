@@ -441,7 +441,7 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 ##### Neural Net #####
 
 # Getting acclerator
-g_torch_device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+g_torch_Device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 
 class MasterNeuralNet( nn.Module ):
     def __init__( self, number_Of_Inputs, number_Of_Outputs ):
@@ -461,7 +461,6 @@ class MasterNeuralNet( nn.Module ):
         x = self.flatten( x )
         logits = self.linear_relu_stack( x )
         return logtts
-
 
 
 ##### External #####
