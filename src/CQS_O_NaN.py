@@ -296,6 +296,26 @@ def getAssetLogReturnsRealizedVolatility( prices_So_Far, asset_Idx, desired_Late
 
     return realized_Volatility
 
+def getMarketMeanAssetLogVolatility( prices_So_Far, desired_Latest_Day, desired_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
+
+    window_Size = desired_Window_Size
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
+    asset_Volatilities_Array = [ getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size ) for asset_Idx in range( number_Of_Instruments ) ]
+    
+    mean_Volatility = np.mean( asset_Volatilities_Array )
+
+    return mean_Volatility
+
+
+
 
 # Appreciation #
 def getAssetLogMovementSeries( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
