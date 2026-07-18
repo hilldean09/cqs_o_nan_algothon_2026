@@ -296,7 +296,7 @@ def getAssetLogReturnsRealizedVolatility( prices_So_Far, asset_Idx, desired_Late
 
     return realized_Volatility
 
-def getMarketMeanAssetLogVolatility( prices_So_Far, desired_Latest_Day, desired_Window_Size ):
+def getMarketStatisticalAssetLogVolatility( prices_So_Far, desired_Latest_Day, desired_Window_Size ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
     
     latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
@@ -311,8 +311,9 @@ def getMarketMeanAssetLogVolatility( prices_So_Far, desired_Latest_Day, desired_
     asset_Volatilities_Array = [ getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size ) for asset_Idx in range( number_Of_Instruments ) ]
     
     mean_Volatility = np.mean( asset_Volatilities_Array )
+    volatility_Standard_Deviation = np.std( asset_Volatilities_Array )
 
-    return mean_Volatility
+    return mean_Volatility, volatility_Standard_Deviation
 
 
 
