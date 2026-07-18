@@ -440,6 +440,21 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 
 ##### Neural Net #####
 
+g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size = 50
+g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size = 10
+g_nn_Market_Correlation_Window_Size = 5
+
+def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
+    global g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size
+    global g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size
+    global g_nn_Market_Correlation_Window_Size
+
+    state = []
+    state.append( timestep_Idx )
+    state.append( getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size ) )
+    state.append( getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size ) )
+    state.append( getCorrelationMatrixAndMeanCorrelation( prices_So_Far, timestep_Idx, g_nn_Market_Correlation_Window_Size )[ 1 ] )
+
 # Getting acclerator
 g_torch_Device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 
@@ -454,8 +469,8 @@ class MasterNeuralNet( nn.Module ):
             nn.ReLU(),
             nn.Linear( int( number_Of_Inputs * 1.5 ), int( number_Of_Outputs * 1.5 ) ),
             nn.ReLU(),
-            nn.Linear( int( number_Of_Outputs * 1.5 ), number_Of_Outputs )
         )
+        nn.Linear( int( number_Of_Outputs * 1.5 ), number_Of_Outputs )
 
     def forward( self, x ):
         x = self.flatten( x )
