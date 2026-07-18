@@ -275,6 +275,28 @@ def getAssetMARelativeRealizedVolatility( prices_So_Far, asset_Idx, desired_Late
 
     return ( realized_Volatility / moving_Average )
 
+# Log Returns Realized Volatility #
+def getAssetLogReturnsRealizedVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
+
+    window_Size = desired_Window_Size
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
+    window_Start_Day = int( latest_Day - window_Size + 1 )
+
+    log_Returns_Series = getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size )
+
+    realized_Volatility = np.std( log_Returns_Series )
+
+    return realized_Volatility
+
+
 # Appreciation #
 def getAssetLogMovementSeries( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
@@ -443,6 +465,7 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size = 50
 g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size = 10
 g_nn_Market_Correlation_Window_Size = 5
+# TODO: Realized volatility function
 
 def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     global g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size
