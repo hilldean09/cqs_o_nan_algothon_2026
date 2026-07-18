@@ -1,4 +1,6 @@
 import numpy as np
+import torch
+from torch import nn
 
 """
 NOTE: Variable Name Prefixes - Dean
@@ -433,6 +435,33 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
         positions[ asset_Idx ] = int( dollar_Position_Limit * moving_Average_Signal / prices_So_Far[ asset_Idx ][ -1 ])
         
     return positions
+
+
+
+##### Neural Net #####
+
+# Getting acclerator
+g_torch_device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+
+class MasterNeuralNet( nn.Module ):
+    def __init__( self, number_Of_Inputs, number_Of_Outputs ):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential( 
+            nn.Linear( number_Of_Inputs, int( number_Of_Inputs * 1.5 )  ),
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 1.5 ), int( number_Of_Inputs * 1.5 ) ),
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 1.5 ), int( number_Of_Outputs * 1.5 ) ),
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Outputs * 1.5 ), number_Of_Outputs )
+        )
+
+    def forward( self, x ):
+        x = self.flatten( x )
+        logits = self.linear_relu_stack( x )
+        return logtts
+
 
 
 ##### External #####
