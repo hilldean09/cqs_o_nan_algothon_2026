@@ -48,7 +48,6 @@ feedback.
 #   TODO: Write basic trading strategy (e.g. moving average
 #   crossover). Focus on writing reusable functions for future
 #   more competitive strategies.
-#   TODO: Implement realized volatility functions. (WIP - Dean)
 
 
 ##### Code Start #####
@@ -60,7 +59,6 @@ g_trade_History_Buffer_Size = 3
 # TODO: Introduce PnL function
 g_previous_PnL_Buffer = np.zeros( g_trade_History_Buffer_Size )
 
-# TODO: Implement function to update this
 g_position_History_Buffer = np.zeros( ( g_number_Of_Instruments, g_trade_History_Buffer_Size ) )
 
 # Strategy Enumeration :
@@ -491,7 +489,6 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 ##### Neural Net #####
 
 g_nn_number_Of_Outputs = 3
-# TODO: Implemenet function to update this
 g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Outputs ) )
 
 def updateNeuralNetOutputHistory( outputs ):
@@ -532,6 +529,8 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     market_Statistical_Volatility = getMarketStatisticalAssetLogVolatility( prices_So_Far, timestep_Idx, g_nn_Market_Statistical_Realized_Volatility_Window_Size )
     state.append( market_Statistical_Volatility[ 0 ] )
     state.append( market_Statistical_Volatility[ 1 ] )
+
+    return state
 
 
 # Getting acclerator
