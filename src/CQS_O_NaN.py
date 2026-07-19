@@ -56,6 +56,12 @@ feedback.
 g_number_Of_Instruments = 51
 current_Position = np.zeros( g_number_Of_Instruments )
 
+
+g_trade_History_Buffer_Size = 3
+g_previous_PnL_Buffer = np.zeros( g_trade_History_Buffer_Size )
+
+g_position_History_Buffer = np.zeros( ( g_number_Of_Instruments, g_trade_History_Buffer_Size ) )
+
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
 #   1 : moving average crossover
@@ -483,6 +489,9 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 
 ##### Neural Net #####
 
+g_nn_number_Of_Outputs = 3
+g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Outputs ) )
+
 # Input parameters
 g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size = 50
 g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size = 10
@@ -497,6 +506,7 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
 
     state = []
     state.append( timestep_Idx )
+    state.append( 
     state.append( getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size ) )
     state.append( getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size ) )
     state.append( getCorrelationMatrixAndMeanCorrelation( prices_So_Far, timestep_Idx, g_nn_Market_Correlation_Window_Size )[ 1 ] )
@@ -504,6 +514,7 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     market_Statistical_Volatility = getMarketStatisticalAssetLogVolatility( prices_So_Far, timestep_Idx, g_nn_Market_Statistical_Realized_Volatility_Window_Size )
     state.append( market_Statistical_Volatility[ 0 ] )
     state.append( market_Statistical_Volatility[ 1 ] )
+
 
 # Getting acclerator
 g_torch_Device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
@@ -519,8 +530,8 @@ class MasterNeuralNet( nn.Module ):
             nn.ReLU(),
             nn.Linear( int( number_Of_Inputs * 1.5 ), int( number_Of_Outputs * 1.5 ) ),
             nn.ReLU(),
+            nn.Linear( int( number_Of_Outputs * 1.5 ), number_Of_Outputs )
         )
-        nn.Linear( int( number_Of_Outputs * 1.5 ), number_Of_Outputs )
 
     def forward( self, x ):
         x = self.flatten( x )
