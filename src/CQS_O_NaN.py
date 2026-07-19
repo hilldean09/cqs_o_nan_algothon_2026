@@ -56,10 +56,11 @@ feedback.
 g_number_Of_Instruments = 51
 current_Position = np.zeros( g_number_Of_Instruments )
 
-
 g_trade_History_Buffer_Size = 3
+# TODO: Introduce PnL function
 g_previous_PnL_Buffer = np.zeros( g_trade_History_Buffer_Size )
 
+# TODO: Implement function to update this
 g_position_History_Buffer = np.zeros( ( g_number_Of_Instruments, g_trade_History_Buffer_Size ) )
 
 # Strategy Enumeration :
@@ -490,7 +491,14 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 ##### Neural Net #####
 
 g_nn_number_Of_Outputs = 3
+# TODO: Implemenet function to update this
 g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Outputs ) )
+
+def updateNeuralNetOutputHistory( outputs ):
+    global g_nn_output_History_Buffer
+
+    g_nn_output_History_Buffer = np.roll( g_nn_output_History_Buffer )
+    g_nn_output_History_Buffer[ 0 ] = outputs
 
 # Input parameters
 g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size = 50
@@ -503,14 +511,24 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     global g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size
     global g_nn_Market_Correlation_Window_Size
     global g_nn_Market_Statistical_Realized_Volatility_Window_Size
+    global g_nn_output_History_Buffer
 
     state = []
+
     state.append( timestep_Idx )
-    state.append( 
+
+    # Previous outputs
+    for last_Output in g_nn_number_Of_Outputs:
+        state.append( last_Output )
+
+    # Market log mean returns (long and short)
     state.append( getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size ) )
     state.append( getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size ) )
+
+    # Average correlation
     state.append( getCorrelationMatrixAndMeanCorrelation( prices_So_Far, timestep_Idx, g_nn_Market_Correlation_Window_Size )[ 1 ] )
     
+    # Realized volatility
     market_Statistical_Volatility = getMarketStatisticalAssetLogVolatility( prices_So_Far, timestep_Idx, g_nn_Market_Statistical_Realized_Volatility_Window_Size )
     state.append( market_Statistical_Volatility[ 0 ] )
     state.append( market_Statistical_Volatility[ 1 ] )
