@@ -613,6 +613,12 @@ def runNeuralNetMasterStrategy( prices_So_Far ):
 
     multipliers, log_Prob = getNeuralNetMutlipliers( mean_Logits_Slice, log_Std_Logits_Slice )
 
+    return_Position = np.zeros( number_Of_Instruments )
+
+    # Moving crossover strategy
+    return_Position = np.add( return_Position, multipliers[ 0 ] * runMovingAverageCrossoverStrategy( prices_So_Far ) )
+
+    return return_Position
 
 
 
