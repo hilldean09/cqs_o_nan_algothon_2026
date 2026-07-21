@@ -1,6 +1,8 @@
 import numpy as np
 import torch
 from torch import nn
+from torch.distributions import Normal, Independent, TransformedDistribution
+from torch.distributions.transforms import TanhTransform, AffineTransform
 
 """
 NOTE: Variable Name Prefixes - Dean
@@ -488,7 +490,10 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 
 ##### Neural Net #####
 
-g_nn_number_Of_Outputs = 3
+g_nn_number_Of_Controlled_Strategies = 2
+g_nn_number_Of_Outputs = 2 * g_nn_number_Of_Controlled_Strategies
+g_nn_number_Of_Inputs = 6 + g_nn_number_Of_Outputs
+
 g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Outputs ) )
 
 def updateNeuralNetOutputHistory( outputs ):
@@ -496,6 +501,7 @@ def updateNeuralNetOutputHistory( outputs ):
 
     g_nn_output_History_Buffer = np.roll( g_nn_output_History_Buffer )
     g_nn_output_History_Buffer[ 0 ] = outputs
+
 
 # Input parameters
 g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size = 50
@@ -536,6 +542,36 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
 # Getting acclerator
 g_torch_Device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
 
+# NOTE: Rewritten from Claude
+# NOTE: Mean and log_Std are tensors
+def getNeuralNetMutliplier( mean, log_Std, output_Bounds = 3.0 ):
+    # Clamping to prevent numerical
+    # instability
+    log_Std = torch.clamp( log_Std, min = -20.0, max = 2.0 )
+    std = log_Std.exp()
+
+    # Building unbounded Gaussian 
+    # distribution
+    base_Distribution = Normal( loc = mean, scale = std )
+    # Ensure log_Prob is summed across
+    # strategies
+    base_Distribution = Independent( base_Distribution, reinterpreted_batch_ndims = 1 )
+
+    # Transforms numbers into values
+    # bounds between negative and positive
+    # bound
+    transform = [ TanhTransform( cache_size = 1 ), AffineTransform( loc = 0.0, scale = output_Bounds ) ]
+    squashed_Distribution = TransformedDistribution( base_Distribution, transform )
+
+    # Sampling multipliers
+    multipliers = squashed_Distribution.rsample()
+
+    log_Prob = squashed_Distribution.log_prob( multipliers )
+
+    return multipliers, log_Prob
+
+
+
 class MasterNeuralNet( nn.Module ):
     def __init__( self, number_Of_Inputs, number_Of_Outputs ):
         super().__init__()
@@ -554,6 +590,29 @@ class MasterNeuralNet( nn.Module ):
         x = self.flatten( x )
         logits = self.linear_relu_stack( x )
         return logtts
+
+# Instance
+g_neural_Net_Instance = MasterNeuralNet( g_nn_number_Of_Inputs, g_nn_number_Of_Outputs )
+
+
+# Neural Net Master Strategy #
+def runNeuralNetMasterStrategy( prices_So_Far ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    timestep_Idx = number_Of_Timesteps - 1
+
+    global g_nn_number_Of_Outputs
+    global g_neural_Net_Instance
+
+    neural_Net_Inputs = getNeuralNetInputs( prices_So_Far, timestep_Idx )
+    logits = g_neural_Net_Instance( neural_Net_Inputs )
+
+    updateNeuralNetOutputHistory( logits )
+
+
+
+
+
+
 
 
 ##### External #####
