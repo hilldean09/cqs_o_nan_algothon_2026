@@ -544,7 +544,7 @@ g_torch_Device = torch.accelerator.current_accelerator().type if torch.accelerat
 
 # NOTE: Rewritten from Claude
 # NOTE: Mean and log_Std are tensors
-def getNeuralNetMutliplier( mean, log_Std, output_Bounds = 3.0 ):
+def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 3.0 ):
     # Clamping to prevent numerical
     # instability
     log_Std = torch.clamp( log_Std, min = -20.0, max = 2.0 )
@@ -607,6 +607,11 @@ def runNeuralNetMasterStrategy( prices_So_Far ):
     logits = g_neural_Net_Instance( neural_Net_Inputs )
 
     updateNeuralNetOutputHistory( logits )
+
+    mean_Logits_Slice = logits[ 0 : int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : 1 ]
+    log_Std_Logits_Slice = logits[ int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : g_nn_number_Of_Outputs : 1 ]
+
+    multipliers, log_Prob = getNeuralNetMutlipliers( mean_Logits_Slice, log_Std_Logits_Slice )
 
 
 
