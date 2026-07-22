@@ -6,6 +6,8 @@ import numpy as np
 import pandas as pd
 import maptlotlib.pyplot as plt
 import torch
+import torch.nn as nn
+import torch.optim as optim
 
 import CQS_O_NaN as onan
 
@@ -146,6 +148,42 @@ def runTrainingLoop( number_Of_Episodes = 500, gamme = 0.99, lr = 1e-2 ):
     environement = Training_Environment()
 
     policy = onan.MasterNeuralNet().to( device )
+    optimiser = optim.Adam( policy.parameters(), lr = lr )
+
+    episode_Rewards = []
+
+    for episode in range( number_Of_Episodes ):
+        if episode % 50 == 0:
+            do_Print = True
+
+            print( "" )
+            print( "Episode : " + str( episode ) )
+            print( "Average episode reward : " + str( np.mean( episode_Rewards ) ) )
+        else
+            do_Print = False
+
+        log_Prob_Array, reward_Array = runEpisode( environement, policy, device, do_Print = do_Print )
+        return_Array = computeReturns( reward_Array, gamme ).to( device )
+        loss = computeLoss( log_Prob_Array, return_Array )
+
+        optimiser.zero_grad()
+        loss.backward()
+        optimiser.step()
+
+        total_Reward = sum( reward_Array )
+
+        episode_Rewards.append( total_Reward )
+
+    return policy, episode_Rewards
+
+
+if __name__ == "__main__":
+    print( "TRAINING" )
+    print( "" )
+
+    trained_Policy, episode_Rewards = runTrainingLoop()
+
+    onan.setGlobalVariable( "g_neural_Net_Instance", trained_Policy )
 
 
 

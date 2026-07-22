@@ -648,7 +648,7 @@ class MasterNeuralNet( nn.Module ):
         return logtts
 
 # Instance
-g_neural_Net_Instance = MasterNeuralNet( g_nn_number_Of_Inputs, g_nn_number_Of_Outputs )
+g_neural_Net_Instance = MasterNeuralNet()
 
 
 # Neural Net Master Strategy #
