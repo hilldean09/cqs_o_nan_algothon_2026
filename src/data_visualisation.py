@@ -16,6 +16,7 @@ def runDataVisualisationMenu():
     print( "\t2 : Asset with Multiple Moving Averages" )
     print( "\t3 : Moving Average Relaive Realized Volatility" )
     print( "\t4 : Arithmetic Drift" )
+    print( "\t5 : Market Mean Log Returns" )
     print( " " )
     print( "Enter choice : ", end="" )
 
@@ -34,6 +35,8 @@ def runDataVisualisationMenu():
         runMovingAverageRelativeVolatilityVisualisation()
     elif( user_Visualisation_Choice_Int == 4 ):
         runArithmeticDriftVisualisation()
+    elif( user_Visualisation_Choice_Int == 5 ):
+        runMarketMeanLogReturns()
 
 
 
@@ -81,34 +84,56 @@ def runPearsonCorrelationCoefficientVisualisation():
 
     day_Number_Vector = range( number_Of_Timesteps )
 
+    do_Display_Average_String = input( "Do display average (y/n): " )
     window_Size = int( input( "Select window size : " ) )
+
+    if( do_Display_Average_String == "y" ):
+       do_Display_Average = True
+    else:
+        do_Display_Average = False
+
     print( " " )
 
     colour_Map = "cool"
 
     correlation_Matrix = np.zeros( ( number_Of_Instruments, number_Of_Instruments ) )
+    if( do_Display_Average ):
+        correlation_Mean_Series = np.zeros( number_Of_Timesteps )
 
-    plt.suptitle( "Pearson Correlation Matrix" )
+    if( do_Display_Average ):
+        fig, ax = plt.subplots( 1, 2 )
+    else:
+        fig, ax = plt.subplots( 1, 1 )
+        ax = list( { ax} )
+
+    fig.suptitle( "Pearson Correlation Matrix" )
     plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( 0 ) )
-    plt.imshow( correlation_Matrix, cmap = colour_Map )
+    ax[ 0 ].imshow( correlation_Matrix, cmap = colour_Map )
     plt.show(block=False)
 
     for day_Num in day_Number_Vector:
         correlation_Matrix = onan.getPearsonCorrelationMatrix( prices_Values, day_Num, window_Size )
+        if( do_Display_Average ):
+            correlation_Mean = np.mean( correlation_Matrix )
+            correlation_Mean_Series[ day_Num ] = correlation_Mean
+
         normalised_Correlation_Matrix = ( correlation_Matrix / 2 ) + 0.5
 
         # Updating plot
-        plt.suptitle( "Pearson Correlation Matrix" )
+        fig.suptitle( "Pearson Correlation Matrix" )
         plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( day_Num ) )
-        plt.imshow( normalised_Correlation_Matrix, cmap = colour_Map )
+        ax[ 0 ].imshow( correlation_Matrix, cmap = colour_Map )
+        if( do_Display_Average ):
+            ax[ 1 ].plot( day_Number_Vector[ 0:day_Num:1 ], correlation_Mean_Series[ 0:day_Num:1 ] )
 
-        plt.draw()
-        plt.pause( 0.001 )
-        plt.clf()
+        fig.canvas.draw()
+        fig.canvas.flush_events()
 
-    plt.suptitle( "Pearson Correlation Matrix" )
+    fig.suptitle( "Pearson Correlation Matrix" )
     plt.title( "window_Size = " + str( window_Size ) + " - day_Num = " + str( day_Num ) )
-    plt.imshow( normalised_Correlation_Matrix, cmap = colour_Map  )
+    ax[ 0 ].imshow( correlation_Matrix, cmap = colour_Map )
+    if( do_Display_Average ):
+        ax[ 1 ].plot( day_Number_Vector, correlation_Mean_Series )
     plt.show()
 
 def runAssetWithMultipleMovingAveragesVisualisation():
@@ -241,6 +266,36 @@ def runArithmeticDriftVisualisation():
         plt.legend()
 
     plt.show()
+
+def runMarketMeanLogReturns():
+    global g_data_File_Name
+    prices_Data = pd.read_csv( g_data_File_Name, sep=r"\s+", header=0, index_col=None )
+    prices_Values = ( prices_Data.values ).T
+
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_Values.shape
+
+    window_Size = int( input( "Enter window size : " ) )
+
+    minimum_Moving_Start_Day = window_Size
+    day_Number_Vector = range( minimum_Moving_Start_Day, number_Of_Timesteps, 1 )
+
+    market_Mean_Log_Returns = np.zeros( number_Of_Timesteps - minimum_Moving_Start_Day )
+    market_Moving_Mean_Log_Returns = np.zeros( number_Of_Timesteps - minimum_Moving_Start_Day )
+    for timestep_Idx in day_Number_Vector:
+        market_Mean_Log_Returns[ timestep_Idx - minimum_Moving_Start_Day ] = onan.getMarketMeanLogReturns( prices_Values, timestep_Idx )
+        market_Moving_Mean_Log_Returns[ timestep_Idx - minimum_Moving_Start_Day ] = onan.getMarketMovingMeanLogReturns( prices_Values, timestep_Idx, window_Size )
+
+    fig, ax = plt.subplots( 1, 2 )
+    fig.suptitle( "Market Mean Log Returns" )
+    ax[ 0 ].set_title( "Daily Mean Log Returns" )
+    ax[ 1 ].set_title( "Moving Mean Log Returns" )
+
+    ax[ 0 ].plot( day_Number_Vector, market_Mean_Log_Returns )
+    ax[ 1 ].plot( day_Number_Vector, market_Moving_Mean_Log_Returns )
+
+    plt.show()
+
+
 
 
 if __name__ == "__main__":

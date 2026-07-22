@@ -1,4 +1,8 @@
 import numpy as np
+import torch
+from torch import nn
+from torch.distributions import Normal, Independent, TransformedDistribution
+from torch.distributions.transforms import TanhTransform, AffineTransform
 
 """
 NOTE: Variable Name Prefixes - Dean
@@ -46,13 +50,18 @@ feedback.
 #   TODO: Write basic trading strategy (e.g. moving average
 #   crossover). Focus on writing reusable functions for future
 #   more competitive strategies.
-#   TODO: Implement realized volatility functions. (WIP - Dean)
 
 
 ##### Code Start #####
 
 g_number_Of_Instruments = 51
 current_Position = np.zeros( g_number_Of_Instruments )
+
+g_trade_History_Buffer_Size = 3
+# TODO: Introduce PnL function
+g_previous_PnL_Buffer = np.zeros( g_trade_History_Buffer_Size )
+
+g_position_History_Buffer = np.zeros( ( g_number_Of_Instruments, g_trade_History_Buffer_Size ) )
 
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
@@ -199,6 +208,12 @@ def getPearsonCorrelationMatrix( prices_So_Far, desired_Latest_Day, desired_Wind
 
     return correlation_Matrix
 
+def getCorrelationMatrixAndMeanCorrelation( prices_So_Far, desired_Latest_Day, desired_Window_Size ):
+    correlation_Matrix = getPearsonCorrelationMatrix( prices_So_Far, desired_Latest_Day, desired_Window_Size )
+    correlation_Mean = np.mean( correlation_Matrix )
+
+    return correlation_Matrix, correlation_Mean 
+
 # Moving Average #
 def getAssetMovingAverage( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
@@ -267,6 +282,49 @@ def getAssetMARelativeRealizedVolatility( prices_So_Far, asset_Idx, desired_Late
 
     return ( realized_Volatility / moving_Average )
 
+# Log Returns Realized Volatility #
+def getAssetLogReturnsRealizedVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
+
+    window_Size = desired_Window_Size
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
+    window_Start_Day = int( latest_Day - window_Size + 1 )
+
+    log_Returns_Series = getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size )
+
+    realized_Volatility = np.std( log_Returns_Series )
+
+    return realized_Volatility
+
+def getMarketStatisticalAssetLogVolatility( prices_So_Far, desired_Latest_Day, desired_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
+
+    window_Size = desired_Window_Size
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
+    asset_Volatilities_Array = [ getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size ) for asset_Idx in range( number_Of_Instruments ) ]
+    
+    mean_Volatility = np.mean( asset_Volatilities_Array )
+    volatility_Standard_Deviation = np.std( asset_Volatilities_Array )
+
+    return mean_Volatility, volatility_Standard_Deviation
+
+
+
+
 # Appreciation #
 def getAssetLogMovementSeries( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
@@ -298,6 +356,9 @@ def getAssetLogDrift( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Wind
     # Setting the window to the maximum 
     # available size if the entire desired
     # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
     log_Movement_Series = getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size )
     log_Drift = np.mean( log_Movement_Series )
 
@@ -312,6 +373,9 @@ def getAssetLogMovementVolatility( prices_So_Far, asset_Idx, desired_Latest_Day,
     # Setting the window to the maximum 
     # available size if the entire desired
     # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
     log_Movement_Series = getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size )
     log_Movement_Volatility = np.sqrt( np.mean( log_Movement_Series** 2 ) - ( np.mean( log_Movement_Series ) ) ** 2 )
 
@@ -333,6 +397,44 @@ def getAssetMARelativeArithmeticDrift( prices_So_Far, asset_Idx, desired_Latest_
 
     return ma_Relative_Arithmetic_Drift
 
+# Maret Average Returns #
+
+def getMarketMeanLogReturns( prices_So_Far, day_Num ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    day_Num = min( day_Num, number_Of_Timesteps - 1 )
+
+    sum_Of_Log_Returns = 0
+
+    for asset_Idx in range( number_Of_Instruments ):
+        sum_Of_Log_Returns += np.log( prices_So_Far[ asset_Idx ][ day_Num ] / prices_So_Far[ asset_Idx ][ day_Num - 1 ] )
+
+    return sum_Of_Log_Returns / number_Of_Instruments
+
+def getMarketMovingMeanLogReturns( prices_So_Far, desired_Latest_Day, desired_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
+
+    window_Size = desired_Window_Size
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
+    window_Start_Day = int( latest_Day - window_Size + 1 )
+
+    sum_Of_Mean_Log_Returns = 0.0
+    
+    for day_Offset in range( window_Size ):
+        sum_Of_Mean_Log_Returns += getMarketMeanLogReturns( prices_So_Far, window_Start_Day + day_Offset )
+
+    mean_Of_Mean_Log_Retursn = sum_Of_Mean_Log_Returns / window_Size
+
+    if( mean_Of_Mean_Log_Retursn == 0.0 ):
+        logWarningHeader( "getMarketMovingMeanLogReturns",  "Returning 0" )
+
+    return mean_Of_Mean_Log_Retursn
 
 
 ##### Strategies #####
@@ -383,6 +485,145 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
         positions[ asset_Idx ] = int( dollar_Position_Limit * moving_Average_Signal / prices_So_Far[ asset_Idx ][ -1 ])
         
     return positions
+
+
+
+##### Neural Net #####
+
+g_nn_number_Of_Controlled_Strategies = 2
+g_nn_number_Of_Outputs = 2 * g_nn_number_Of_Controlled_Strategies
+g_nn_number_Of_Inputs = 6 + g_nn_number_Of_Outputs
+
+g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Outputs ) )
+
+def updateNeuralNetOutputHistory( outputs ):
+    global g_nn_output_History_Buffer
+
+    g_nn_output_History_Buffer = np.roll( g_nn_output_History_Buffer )
+    g_nn_output_History_Buffer[ 0 ] = outputs
+
+
+# Input parameters
+g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size = 50
+g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size = 10
+g_nn_Market_Correlation_Window_Size = 5
+g_nn_Market_Statistical_Realized_Volatility_Window_Size = 5
+
+def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
+    global g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size
+    global g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size
+    global g_nn_Market_Correlation_Window_Size
+    global g_nn_Market_Statistical_Realized_Volatility_Window_Size
+    global g_nn_output_History_Buffer
+
+    state = []
+
+    state.append( timestep_Idx )
+
+    # Previous outputs
+    for last_Output in g_nn_number_Of_Outputs:
+        state.append( last_Output )
+
+    # Market log mean returns (long and short)
+    state.append( getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size ) )
+    state.append( getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size ) )
+
+    # Average correlation
+    state.append( getCorrelationMatrixAndMeanCorrelation( prices_So_Far, timestep_Idx, g_nn_Market_Correlation_Window_Size )[ 1 ] )
+    
+    # Realized volatility
+    market_Statistical_Volatility = getMarketStatisticalAssetLogVolatility( prices_So_Far, timestep_Idx, g_nn_Market_Statistical_Realized_Volatility_Window_Size )
+    state.append( market_Statistical_Volatility[ 0 ] )
+    state.append( market_Statistical_Volatility[ 1 ] )
+
+    return state
+
+
+# Getting acclerator
+g_torch_Device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+
+# NOTE: Rewritten from Claude
+# NOTE: Mean and log_Std are tensors
+def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 3.0 ):
+    # Clamping to prevent numerical
+    # instability
+    log_Std = torch.clamp( log_Std, min = -20.0, max = 2.0 )
+    std = log_Std.exp()
+
+    # Building unbounded Gaussian 
+    # distribution
+    base_Distribution = Normal( loc = mean, scale = std )
+    # Ensure log_Prob is summed across
+    # strategies
+    base_Distribution = Independent( base_Distribution, reinterpreted_batch_ndims = 1 )
+
+    # Transforms numbers into values
+    # bounds between negative and positive
+    # bound
+    transform = [ TanhTransform( cache_size = 1 ), AffineTransform( loc = 0.0, scale = output_Bounds ) ]
+    squashed_Distribution = TransformedDistribution( base_Distribution, transform )
+
+    # Sampling multipliers
+    multipliers = squashed_Distribution.rsample()
+
+    log_Prob = squashed_Distribution.log_prob( multipliers )
+
+    return multipliers, log_Prob
+
+
+
+class MasterNeuralNet( nn.Module ):
+    def __init__( self, number_Of_Inputs, number_Of_Outputs ):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential( 
+            nn.Linear( number_Of_Inputs, int( number_Of_Inputs * 1.5 )  ),
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 1.5 ), int( number_Of_Inputs * 1.5 ) ),
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 1.5 ), int( number_Of_Outputs * 1.5 ) ),
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Outputs * 1.5 ), number_Of_Outputs )
+        )
+
+    def forward( self, x ):
+        x = self.flatten( x )
+        logits = self.linear_relu_stack( x )
+        return logtts
+
+# Instance
+g_neural_Net_Instance = MasterNeuralNet( g_nn_number_Of_Inputs, g_nn_number_Of_Outputs )
+
+
+# Neural Net Master Strategy #
+def runNeuralNetMasterStrategy( prices_So_Far ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    timestep_Idx = number_Of_Timesteps - 1
+
+    global g_nn_number_Of_Outputs
+    global g_neural_Net_Instance
+
+    neural_Net_Inputs = getNeuralNetInputs( prices_So_Far, timestep_Idx )
+    logits = g_neural_Net_Instance( neural_Net_Inputs )
+
+    updateNeuralNetOutputHistory( logits )
+
+    mean_Logits_Slice = logits[ 0 : int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : 1 ]
+    log_Std_Logits_Slice = logits[ int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : g_nn_number_Of_Outputs : 1 ]
+
+    multipliers, log_Prob = getNeuralNetMutlipliers( mean_Logits_Slice, log_Std_Logits_Slice )
+
+    return_Position = np.zeros( number_Of_Instruments )
+
+    # Moving crossover strategy
+    return_Position = np.add( return_Position, multipliers[ 0 ] * runMovingAverageCrossoverStrategy( prices_So_Far ) )
+
+    return return_Position
+
+
+
+
+
 
 
 ##### External #####
