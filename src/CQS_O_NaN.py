@@ -540,7 +540,7 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 
 ##### Neural Net #####
 
-g_nn_number_Of_Controlled_Strategies = 2
+g_nn_number_Of_Controlled_Strategies = 3
 g_nn_number_Of_Outputs = 2 * g_nn_number_Of_Controlled_Strategies
 g_nn_number_Of_Inputs = 6 + g_nn_number_Of_Outputs
 
@@ -668,6 +668,7 @@ def runNeuralNetMasterStrategy( prices_So_Far ):
     # Moving crossover strategy
     return_Position = np.add( return_Position, multipliers[ 0 ] * runMovingAverageCrossoverStrategy( prices_So_Far ) )
     return_Position = np.add( return_Position, multipliers[ 1 ] * runAlgorithm1Strategy( prices_So_Far ) )
+    return_Position = np.add( return_Position, multipliers[ 2 ] * runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ) )
 
     return return_Position
 
