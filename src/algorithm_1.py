@@ -65,7 +65,7 @@ then calculate its returns, converts it into logarithmic prices, which are used 
 it then calls the trading signals, ranks intruments, and selects which to hold. (top 10), after that it assigns 
 position direction, and converts desired dollar exposure to required numbner of shares
 """
-def getMyPosition(prcSoFar):
+def runAlgorithm1Strategy(prcSoFar):
     global _heldSet
     nins, nt = prcSoFar.shape # number of instruments and time steps
 
