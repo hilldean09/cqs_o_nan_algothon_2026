@@ -24,7 +24,15 @@ class Training_Environment():
     def _setTimestepPricesSoFar( self, timestep_Idx ):
         self.prices_So_Far = self.prices_Values[ : , : timesteps_Idx + 1 ]
 
-    def __init__( self, file_Name ):
+    def reset( self ):
+        self._setInitialConditions()
+        self._setTimestepPricesSoFar( self.timestep_Idx )
+
+        output_State = onan.getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
+
+        return output_State, 0, False
+
+    def __init__( self, file_Name = "prices.txt" ):
         prices_Data = pd.read_csv( file_Name, sep=r"\s+", header=0, index_col=None )
         self.all_Prices_Values = np.asarray( ( prices_Data.values ).T )
 
@@ -35,8 +43,6 @@ class Training_Environment():
 
         self.reset()
 
-
-    # TODO: Write implementation
     def _calculateStepReward( self, new_Position_Original ):
         current_Prices = self.prices_So_Far[ -1 ]
 
@@ -69,7 +75,7 @@ class Training_Environment():
 
         if( self.timestep_Idx < self.episode_Size ):
             self._setTimestepPricesSoFar( self.timestep_Idx )
-            output_State = getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
+            output_State = onan.getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
             output_End = False
         else:
             output_End = True
@@ -77,13 +83,6 @@ class Training_Environment():
         return output_State, reward, output_End, log_Prob, today_PnL
 
 
-    def reset( self ):
-        self._setInitialConditions()
-        self._setTimestepPricesSoFar( self.timestep_Idx )
-
-        output_State = getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
-
-        return output_State, 0, False
 
 def runEpisode( environement, policy, device, do_Print = False ):
     state, _ = environement.reset()
@@ -142,6 +141,11 @@ def computeLoss( log_Prob_Array, return_Array ):
 
     return loss
 
+def runTrainingLoop( number_Of_Episodes = 500, gamme = 0.99, lr = 1e-2 ):
+    device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" )
+    environement = Training_Environment()
+
+    policy = onan.MasterNeuralNet().to( device )
 
 
 

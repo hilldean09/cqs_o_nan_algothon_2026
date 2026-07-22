@@ -623,7 +623,13 @@ def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 3.0 ):
 
 
 class MasterNeuralNet( nn.Module ):
-    def __init__( self, number_Of_Inputs, number_Of_Outputs ):
+    def __init__( self ):
+        global g_nn_number_Of_Inputs
+        global g_nn_number_Of_Outputs
+
+        number_Of_Inputs = g_nn_number_Of_Inputs
+        number_Of_Outputs = g_nn_number_Of_Outputs
+
         super().__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential( 
