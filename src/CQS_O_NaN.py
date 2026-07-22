@@ -646,15 +646,11 @@ g_neural_Net_Instance = MasterNeuralNet( g_nn_number_Of_Inputs, g_nn_number_Of_O
 
 
 # Neural Net Master Strategy #
-def runNeuralNetMasterStrategy( prices_So_Far ):
+def runNeuralNetMasterStrategy( prices_So_Far, logits ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
     timestep_Idx = number_Of_Timesteps - 1
 
     global g_nn_number_Of_Outputs
-    global g_neural_Net_Instance
-
-    neural_Net_Inputs = getNeuralNetInputs( prices_So_Far, timestep_Idx )
-    logits = g_neural_Net_Instance( neural_Net_Inputs )
 
     updateNeuralNetOutputHistory( logits )
 
