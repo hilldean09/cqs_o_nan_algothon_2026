@@ -666,7 +666,7 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
     return_Position = np.add( return_Position, multipliers[ 1 ] * runAlgorithm1Strategy( prices_So_Far ) )
     return_Position = np.add( return_Position, multipliers[ 2 ] * runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ) )
 
-    return return_Position
+    return return_Position, log_Prob
 
 
 

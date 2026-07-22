@@ -58,7 +58,7 @@ class Training_Environment():
     def step( self, logits ):
         # returns a state vector corresponding to 
         # the neural net inputs
-        return_Position = onan.runNeuralNetMasterStrategy( self.prices_So_Far, logits )
+        return_Position, log_Prob = onan.runNeuralNetMasterStrategy( self.prices_So_Far, logits )
 
         reward = self._calculateReward( return_Position )
 
@@ -72,11 +72,39 @@ class Training_Environment():
         else:
             output_End = True
 
-        return output_State, reward, output_End
+        return output_State, reward, output_End, log_Prob
 
 
     def reset( self ):
         self._setInitialConditions()
         self._setTimestepPricesSoFar( self.timestep_Idx )
+
+        output_State = getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
+
+        return output_State, 0, False
+
+def runEpisode( environement, policy, device ):
+    state, _ = environement.reset()
+
+    log_Prob_Array = []
+    reward_Array = []
+
+    done = False
+
+    while not done:
+        state_tensor = torch.as_tensor( state, dtype=torch.float32, device = device )
+
+        logits = policy( state_tensor )
+
+        next_State, reward, done, log_Prob = environement.step( logits )
+
+        log_Prob_Array.append( log_Prob )
+        reward_Array.append( reward )
+
+        state = next_State
+
+    return log_Prob_Array, reward_Array
+
+
 
 
