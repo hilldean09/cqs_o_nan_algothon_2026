@@ -88,7 +88,7 @@ class Training_Environment():
 
 
 def runEpisode( environement, policy, device, do_Print = False ):
-    state, _ = environement.reset()
+    state, _, _ = environement.reset()
 
     log_Prob_Array = []
     reward_Array = []

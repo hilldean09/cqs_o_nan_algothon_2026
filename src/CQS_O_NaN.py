@@ -549,8 +549,10 @@ g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_numbe
 def updateNeuralNetOutputHistory( outputs ):
     global g_nn_output_History_Buffer
 
-    g_nn_output_History_Buffer = np.roll( g_nn_output_History_Buffer )
-    g_nn_output_History_Buffer[ 0 ] = outputs
+    g_nn_output_History_Buffer = np.roll( g_nn_output_History_Buffer, 1 )
+    g_nn_output_History_Buffer[ 0 ] = np.asarray( outputs )
+
+    print( g_nn_output_History_Buffer )
 
 
 # Input parameters
@@ -571,7 +573,7 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     state.append( timestep_Idx )
 
     # Previous outputs
-    for last_Output in g_nn_number_Of_Outputs:
+    for last_Output in range( g_nn_number_Of_Outputs ):
         state.append( last_Output )
 
     # Market log mean returns (long and short)
@@ -624,13 +626,14 @@ def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 3.0 ):
 
 class MasterNeuralNet( nn.Module ):
     def __init__( self ):
+        super().__init__()
+
         global g_nn_number_Of_Inputs
         global g_nn_number_Of_Outputs
 
         number_Of_Inputs = g_nn_number_Of_Inputs
         number_Of_Outputs = g_nn_number_Of_Outputs
 
-        super().__init__()
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential( 
             nn.Linear( number_Of_Inputs, int( number_Of_Inputs * 1.5 )  ),
@@ -643,9 +646,9 @@ class MasterNeuralNet( nn.Module ):
         )
 
     def forward( self, x ):
-        x = self.flatten( x )
+        # x = self.flatten( x )
         logits = self.linear_relu_stack( x )
-        return logtts
+        return logits
 
 # Instance
 g_neural_Net_Instance = MasterNeuralNet()
