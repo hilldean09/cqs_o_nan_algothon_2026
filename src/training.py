@@ -4,7 +4,7 @@
 import random
 import numpy as np
 import pandas as pd
-import maptlotlib.pyplot as plt
+import matplotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
@@ -25,7 +25,7 @@ class Training_Environment():
         self.value = 0
 
     def _setTimestepPricesSoFar( self, timestep_Idx ):
-        self.prices_So_Far = self.prices_Values[ : , : timesteps_Idx + 1 ]
+        self.prices_So_Far = self.prices_Values[ : , : timestep_Idx + 1 ]
 
     def reset( self ):
         self._setInitialConditions()
@@ -133,7 +133,7 @@ def computeReturns( reward_Array, gamma = 0.99 ):
 
     return_Array = torch.tensor( return_Array, dtype=torch.float32 )
 
-    return_Array = ( return_Array - return_Array.mean() ) / return_Array.std() + 1e-8 )
+    return_Array = ( return_Array - return_Array.mean() ) / return_Array.std() + 1e-8
 
     return return_Array
 
@@ -160,7 +160,7 @@ def runTrainingLoop( number_Of_Episodes = 500, gamme = 0.99, lr = 1e-2 ):
             print( "" )
             print( "Episode : " + str( episode ) )
             print( "Average episode reward : " + str( np.mean( episode_Rewards ) ) )
-        else
+        else:
             do_Print = False
 
         log_Prob_Array, reward_Array = runEpisode( environement, policy, device, do_Print = do_Print )
