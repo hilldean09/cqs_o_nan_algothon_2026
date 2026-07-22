@@ -1,4 +1,8 @@
 import numpy as np
+import torch
+from torch import nn
+from torch.distributions import Normal, Independent, TransformedDistribution
+from torch.distributions.transforms import TanhTransform, AffineTransform
 
 """
 NOTE: Variable Name Prefixes - Dean
@@ -46,13 +50,18 @@ feedback.
 #   TODO: Write basic trading strategy (e.g. moving average
 #   crossover). Focus on writing reusable functions for future
 #   more competitive strategies.
-#   TODO: Implement realized volatility functions. (WIP - Dean)
 
 
 ##### Code Start #####
 
 g_number_Of_Instruments = 51
 current_Position = np.zeros( g_number_Of_Instruments )
+
+g_trade_History_Buffer_Size = 3
+# TODO: Introduce PnL function
+g_previous_PnL_Buffer = np.zeros( g_trade_History_Buffer_Size )
+
+g_position_History_Buffer = np.zeros( ( g_number_Of_Instruments, g_trade_History_Buffer_Size ) )
 
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
@@ -273,6 +282,49 @@ def getAssetMARelativeRealizedVolatility( prices_So_Far, asset_Idx, desired_Late
 
     return ( realized_Volatility / moving_Average )
 
+# Log Returns Realized Volatility #
+def getAssetLogReturnsRealizedVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
+
+    window_Size = desired_Window_Size
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
+    window_Start_Day = int( latest_Day - window_Size + 1 )
+
+    log_Returns_Series = getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size )
+
+    realized_Volatility = np.std( log_Returns_Series )
+
+    return realized_Volatility
+
+def getMarketStatisticalAssetLogVolatility( prices_So_Far, desired_Latest_Day, desired_Window_Size ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    
+    latest_Day = min( desired_Latest_Day, number_Of_Timesteps - 1 )
+
+    window_Size = desired_Window_Size
+    # Setting the window to the maximum 
+    # available size if the entire desired
+    # window size is not available
+    if( latest_Day - window_Size + 1 < 0 ):
+        window_Size = latest_Day + 1
+
+    asset_Volatilities_Array = [ getAssetLogMovementSeries( prices_So_Far, asset_Idx, latest_Day, window_Size ) for asset_Idx in range( number_Of_Instruments ) ]
+    
+    mean_Volatility = np.mean( asset_Volatilities_Array )
+    volatility_Standard_Deviation = np.std( asset_Volatilities_Array )
+
+    return mean_Volatility, volatility_Standard_Deviation
+
+
+
+
 # Appreciation #
 def getAssetLogMovementSeries( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
@@ -484,6 +536,248 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
         
     return positions
 
+
+
+##### Neural Net #####
+
+g_nn_number_Of_Controlled_Strategies = 2
+g_nn_number_Of_Outputs = 2 * g_nn_number_Of_Controlled_Strategies
+g_nn_number_Of_Inputs = 6 + g_nn_number_Of_Outputs
+
+g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Outputs ) )
+
+def updateNeuralNetOutputHistory( outputs ):
+    global g_nn_output_History_Buffer
+
+    g_nn_output_History_Buffer = np.roll( g_nn_output_History_Buffer )
+    g_nn_output_History_Buffer[ 0 ] = outputs
+
+
+# Input parameters
+g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size = 50
+g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size = 10
+g_nn_Market_Correlation_Window_Size = 5
+g_nn_Market_Statistical_Realized_Volatility_Window_Size = 5
+
+def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
+    global g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size
+    global g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size
+    global g_nn_Market_Correlation_Window_Size
+    global g_nn_Market_Statistical_Realized_Volatility_Window_Size
+    global g_nn_output_History_Buffer
+
+    state = []
+
+    state.append( timestep_Idx )
+
+    # Previous outputs
+    for last_Output in g_nn_number_Of_Outputs:
+        state.append( last_Output )
+
+    # Market log mean returns (long and short)
+    state.append( getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size ) )
+    state.append( getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size ) )
+
+    # Average correlation
+    state.append( getCorrelationMatrixAndMeanCorrelation( prices_So_Far, timestep_Idx, g_nn_Market_Correlation_Window_Size )[ 1 ] )
+    
+    # Realized volatility
+    market_Statistical_Volatility = getMarketStatisticalAssetLogVolatility( prices_So_Far, timestep_Idx, g_nn_Market_Statistical_Realized_Volatility_Window_Size )
+    state.append( market_Statistical_Volatility[ 0 ] )
+    state.append( market_Statistical_Volatility[ 1 ] )
+
+    return state
+
+
+# Getting acclerator
+g_torch_Device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+
+# NOTE: Rewritten from Claude
+# NOTE: Mean and log_Std are tensors
+def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 3.0 ):
+    # Clamping to prevent numerical
+    # instability
+    log_Std = torch.clamp( log_Std, min = -20.0, max = 2.0 )
+    std = log_Std.exp()
+
+    # Building unbounded Gaussian 
+    # distribution
+    base_Distribution = Normal( loc = mean, scale = std )
+    # Ensure log_Prob is summed across
+    # strategies
+    base_Distribution = Independent( base_Distribution, reinterpreted_batch_ndims = 1 )
+
+    # Transforms numbers into values
+    # bounds between negative and positive
+    # bound
+    transform = [ TanhTransform( cache_size = 1 ), AffineTransform( loc = 0.0, scale = output_Bounds ) ]
+    squashed_Distribution = TransformedDistribution( base_Distribution, transform )
+
+    # Sampling multipliers
+    multipliers = squashed_Distribution.rsample()
+
+    log_Prob = squashed_Distribution.log_prob( multipliers )
+
+    return multipliers, log_Prob
+
+
+
+class MasterNeuralNet( nn.Module ):
+    def __init__( self, number_Of_Inputs, number_Of_Outputs ):
+        super().__init__()
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential( 
+            nn.Linear( number_Of_Inputs, int( number_Of_Inputs * 1.5 )  ),
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 1.5 ), int( number_Of_Inputs * 1.5 ) ),
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 1.5 ), int( number_Of_Outputs * 1.5 ) ),
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Outputs * 1.5 ), number_Of_Outputs )
+        )
+
+    def forward( self, x ):
+        x = self.flatten( x )
+        logits = self.linear_relu_stack( x )
+        return logtts
+
+# Instance
+g_neural_Net_Instance = MasterNeuralNet( g_nn_number_Of_Inputs, g_nn_number_Of_Outputs )
+
+
+# Neural Net Master Strategy #
+def runNeuralNetMasterStrategy( prices_So_Far ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    timestep_Idx = number_Of_Timesteps - 1
+
+    global g_nn_number_Of_Outputs
+    global g_neural_Net_Instance
+
+    neural_Net_Inputs = getNeuralNetInputs( prices_So_Far, timestep_Idx )
+    logits = g_neural_Net_Instance( neural_Net_Inputs )
+
+    updateNeuralNetOutputHistory( logits )
+
+    mean_Logits_Slice = logits[ 0 : int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : 1 ]
+    log_Std_Logits_Slice = logits[ int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : g_nn_number_Of_Outputs : 1 ]
+
+    multipliers, log_Prob = getNeuralNetMutlipliers( mean_Logits_Slice, log_Std_Logits_Slice )
+
+    return_Position = np.zeros( number_Of_Instruments )
+
+    # Moving crossover strategy
+    return_Position = np.add( return_Position, multipliers[ 0 ] * runMovingAverageCrossoverStrategy( prices_So_Far ) )
+    return_Position = np.add( return_Position, multipliers[ 1 ] * runAlgorithm1Strategy( prices_So_Far ) )
+
+    return return_Position
+
+
+
+
+##### Algorithm1 #####
+
+""" 
+thing to note: the reason why this algorithm, heavily edited version from my previous code,
+doesnt yield such a high score is because it only trades with veryu high confidence.
+i.e. only trades top 10, and only holds them if they are still in the top 16. this is a very conservative approach, and it is not necessarily the best approach for maximizing score
+there definitely loys of ways to improve the score, but this version is a safe version that guarantees a positive :D
+for days 251-500, this scored 153.67. haha 67
+"""
+
+
+import numpy as np
+
+a1_nInst = 51
+dlrLimit = np.full(a1_nInst, 10_000.0) # limits
+dlrLimit[0] = 100_000.0
+EPS = 1e-9 # prevent divide-by-zero in standardization
+
+MIN_HIST = 1      # minimum days of return history before trading -> estimates r/s between all 51 instruments
+ENTER_K = 12        # an asset must rank in the top ENTER_K |signal| to open a new position
+EXIT_K = 17         # an already-held asset stays as long as it's still in the top EXIT_K
+                     # (hysteresis - cuts needless flip-flopping / commission drag)
+
+_heldSet = set()     # persists across calls: which assets currently carry conviction bets
+
+
+def _leadlag_signal(rets_hist):
+    """
+    cross-sectional lead-lag forecast: regress each asset's return on *all*
+    assets' previous-day standardized returns (via covariance-based
+    projection), then apply that r/s to today's returns to forecast
+    tomorrow's cross-section of returns. Captures the modest but genuine
+    (statistically significant out-of-sample) lead-lag structure between
+    instruments in this universe, as opposed to single-asset momentum/reversal
+    which carries no real edge here.
+    """
+    X = rets_hist[:, :-1].T   # returns at t-1, shape (T-1, nInst) -> coontains the returns of all instruments for all days except the last day
+    Y = rets_hist[:, 1:].T    # returns at t,   shape (T-1, nInst) -> 1 day after
+    xmu, xsd = X.mean(0), X.std(0) + EPS # historical mean and stand dev of every X asset
+    ymu, ysd = Y.mean(0), Y.std(0) + EPS # historical mean and stand dev of every Y asset
+    Xs = (X - xmu) / xsd # standardize X and Y to have mean 0 and std 1
+    Ys = (Y - ymu) / ysd # standardize X and Y to have mean 0 and std 1
+    LL = (Xs.T @ Ys) / Xs.shape[0]     # (nInst, nInst) lead-lag coefficient matrix
+    np.fill_diagonal(LL, 0.0)          # use cross-asset relationships
+    last = rets_hist[:, -1] # most recent return for every instrument
+    last_std = (last - xmu) / xsd # standardize the most recent return for every instrument
+    return last_std @ LL               # forecast for tomorrow's standardized return, per asset
+
+
+def _regime_scale(rets_hist):
+    """shrink exposure modestly when the market is in an abnormally turbulent
+    regime (short-term vol well above its longer-run level); this doesn't
+    change direction, only overall aggressiveness."""
+    mkt = rets_hist.mean(axis=0)
+    if mkt.shape[0] < 60: # not enough history to estimate short/long vol, so don't scale down
+        return 1.0
+    short_vol = mkt[-10:].std() + EPS # short-term volatility of the market
+    long_vol = mkt[-60:].std() + EPS # long term
+    ratio = short_vol / long_vol # ratio of short-term to long-term volatility -> if ratio > 1, then short-term volatility is higher than long-term volatility, indicating a turbulent regime
+    return float(np.clip(1.15 - 0.35 * max(ratio - 1.0, 0.0), 0.6, 1.15))
+
+
+""" 
+getmyposition() first checks data avail, verifies that at least 60 days of historical returns are avail,
+then calculate its returns, converts it into logarithmic prices, which are used as the input for forecasting model
+( logarithmic returns as my friend claude and chatgpt says thisb is the standard practice in quant firms :D )
+it then calls the trading signals, ranks intruments, and selects which to hold. (top 10), after that it assigns 
+position direction, and converts desired dollar exposure to required numbner of shares
+"""
+def runAlgorithm1Strategy(prcSoFar):
+    global _heldSet
+    nins, nt = prcSoFar.shape # number of instruments and time steps
+
+    if nt < MIN_HIST + 1: # not enough history to estimate r/s between all instruments, so don't trade yet
+        return np.zeros(nins, dtype=int)
+
+    logp = np.log(prcSoFar) # compute log prices from prices
+    rets = np.diff(logp, axis=1) # compute returns from log prices
+
+    sig = _leadlag_signal(rets)  # compute lead-lag signals
+    scale = _regime_scale(rets) # compute regime scaling factor
+
+    order = np.argsort(-np.abs(sig)) # sort the signals in descending order of absolute value, so that the most extreme signals are first
+    ranks = np.empty(nins, dtype=int)
+    ranks[order] = np.arange(nins)
+
+    newHeld = set()
+    for i in range(nins): 
+        threshold = EXIT_K if i in _heldSet else ENTER_K
+        if ranks[i] < threshold:
+            newHeld.add(i)
+    _heldSet = newHeld
+
+    conf = np.zeros(nins)
+    for i in newHeld:
+        conf[i] = np.sign(sig[i]) * scale
+
+    curPrices = prcSoFar[:, -1]
+    targetDollars = conf * dlrLimit
+    targetShares = targetDollars / curPrices
+
+    posLimitShares = (dlrLimit / curPrices).astype(int)
+    newPos = np.clip(targetShares, -posLimitShares, posLimitShares)
+    return newPos.astype(int)
 
 ##### External #####
 
