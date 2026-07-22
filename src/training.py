@@ -52,7 +52,9 @@ class Training_Environment():
 
         self.value = self.cash + position_Value
 
-        return today_PnL
+        reward = today_PnL
+
+        return reward, today_PnL
 
 
     def step( self, logits ):
@@ -60,7 +62,7 @@ class Training_Environment():
         # the neural net inputs
         return_Position, log_Prob = onan.runNeuralNetMasterStrategy( self.prices_So_Far, logits )
 
-        reward = self._calculateReward( return_Position )
+        reward, today_PnL = self._calculateReward( return_Position )
 
         self.previous_Position = return_Position
         self.timestep += 1
@@ -72,7 +74,7 @@ class Training_Environment():
         else:
             output_End = True
 
-        return output_State, reward, output_End, log_Prob
+        return output_State, reward, output_End, log_Prob, today_PnL
 
 
     def reset( self ):
@@ -83,11 +85,13 @@ class Training_Environment():
 
         return output_State, 0, False
 
-def runEpisode( environement, policy, device ):
+def runEpisode( environement, policy, device, do_Print = False ):
     state, _ = environement.reset()
 
     log_Prob_Array = []
     reward_Array = []
+
+    daily_PnL_Array = []
 
     done = False
 
@@ -96,16 +100,28 @@ def runEpisode( environement, policy, device ):
 
         logits = policy( state_tensor )
 
-        next_State, reward, done, log_Prob = environement.step( logits )
+        next_State, reward, done, log_Prob, today_PnL = environement.step( logits )
+        daily_PnL_Array.append( today_PnL )
 
         log_Prob_Array.append( log_Prob )
         reward_Array.append( reward )
 
         state = next_State
 
+    if do_Print:
+        mean_PnL = np.mean( daily_PnL_Array )
+        std_PnL = np.std( daily_PnL_Array )
+
+        sharpe_Ratio = mean_PnL / std_PnL
+
+        print( "Perforamnce : " )
+        print( "\tmean_PnL : " + str( mean_PnL ) )
+        print( "\tstd_PnL : " + str( std_PnL ) )
+        print( "\tSR : " + str( sharpe_Ratio ) )
+
     return log_Prob_Array, reward_Array
 
-def computeReturns( reward_Array, gamma = 0.99 ):A
+def computeReturns( reward_Array, gamma = 0.99 ):
     return_Array = []
     G = 0.0
 
