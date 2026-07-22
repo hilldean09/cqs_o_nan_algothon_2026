@@ -30,20 +30,26 @@ class Training_Environment():
 
         ( self.number_Of_Instruments, self.number_Of_Timesteps ) = self.all_Prices_Values.shape
         
-        self._setInitialConditions()
+        self.dollar_Position_Limit = np.full( self.number_Of_Instruments, 10_000 )
+        self.dollar_Position_Limit[ 0 ] = 100_000
+
+        self.reset()
 
 
     # TODO: Write implementation
-    def _calculateStepReward( self, new_Position ):
-        # TODO: Add position limit clipping
+    def _calculateStepReward( self, new_Position_Original ):
         current_Prices = self.prices_So_Far[ -1 ]
+
+        position_Limits = ( self.dollar_Position_Limit / current_Prices ).astype( int )
+        new_Position = np.clip( new_Position_Original, -position_Limits, position_Limits ).astype( int )
+
         delta_Pos = new_Position - self.previous_Position
 
         position_Value = new_Position.dot( current_Prices )
-
         self.cash -= current_Prices.dot( delta_Pos )
 
         today_PnL = cash + position_Value - self.value
+
         self.value = self.cash + position_Value
 
         return today_PnL
