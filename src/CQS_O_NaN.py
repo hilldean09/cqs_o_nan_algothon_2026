@@ -670,7 +670,6 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
 
 
 
-
 ##### Algorithm1 #####
 
 """ 

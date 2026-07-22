@@ -105,6 +105,27 @@ def runEpisode( environement, policy, device ):
 
     return log_Prob_Array, reward_Array
 
+def computeReturns( reward_Array, gamma = 0.99 ):A
+    return_Array = []
+    G = 0.0
+
+    for reward in reversed( reward_Array ):
+        G = reward + gamma * G
+        return_Array.insert( 0, G )
+
+    return_Array = torch.tensor( return_Array, dtype=torch.float32 )
+
+    return_Array = ( return_Array - return_Array.mean() ) / return_Array.std() + 1e-8 )
+
+    return return_Array
+
+def computeLoss( log_Prob_Array, return_Array ):
+    loss = 0
+    for log_Prob, G in zip( log_Prob_Array, return_Array ):
+        loss += -log_Prob * G
+
+    return loss
+
 
 
 
