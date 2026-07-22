@@ -8,6 +8,7 @@ import maptlotlib.pyplot as plt
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import eval
 
 import CQS_O_NaN as onan
 
@@ -181,9 +182,23 @@ if __name__ == "__main__":
     print( "TRAINING" )
     print( "" )
 
-    trained_Policy, episode_Rewards = runTrainingLoop()
+    trained_Policy, episode_Rewards = runTrainingLoop(10)
 
     onan.setGlobalVariable( "g_neural_Net_Instance", trained_Policy )
+
+    # Copied from eval
+    pricesFile = "./prices.txt"
+    numTestDays = 250
+    scoreDefaultParam = 1.0
+    prcAll = eval.loadPrices(pricesFile)
+
+    meanpl, ret, plstd, sharpe, dvol = eval.calcPL(prcAll, numTestDays)
+    score = eval.score(meanpl, plstd, scoreDefaultParam)
+
+    print( "" )
+    print( "Score : " + str( score ) )
+
+
 
 
 
