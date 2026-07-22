@@ -1,12 +1,11 @@
+##### Lead-lag Correlation Strategy #####
+
 """Candidate submission: online factor-regime ensemble.
 
 This is intentionally self-contained and uses NumPy only.  It is designed to
 be copied to the required submission filename after the team has completed its
 own validation.
 """
-
-import numpy as np
-
 
 # The values match the published limits and commission asymmetry.  We only use
 # commission in the model-selection proxy; evaluation itself applies the true
@@ -94,7 +93,7 @@ def _choose_direction(returns, dollar_limits):
     return float(experts[chosen, -1])
 
 
-def getMyPosition(prcSoFar):
+def runOnlineFactorRegimeEnsembleStrategy(prcSoFar):
     """Return desired integer share holdings for the current close."""
     n_inst, n_times = prcSoFar.shape
     if n_inst != 51 or n_times < _PERFORMANCE_WINDOW + 3:
@@ -107,3 +106,4 @@ def getMyPosition(prcSoFar):
 
     target_shares = direction * dollar_limits / prcSoFar[:, -1]
     return target_shares.astype(int)
+
