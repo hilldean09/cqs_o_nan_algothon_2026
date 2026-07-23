@@ -27,7 +27,7 @@ class Training_Environment():
         self.value = 0
 
     def _setTimestepPricesSoFar( self, timestep_Idx ):
-        self.prices_So_Far = self.prices_Values[ : ][ 0 : timestep_Idx + 1 : 1 ]
+        self.prices_So_Far = self.prices_Values[ : , 0 : timestep_Idx + 1 : 1 ]
 
 
     def reset( self ):
@@ -50,7 +50,7 @@ class Training_Environment():
         self.reset()
 
     def _calculateStepReward( self, new_Position_Original ):
-        current_Prices = self.prices_So_Far[ : , -1 ]
+        current_Prices = self.prices_So_Far[ : , -1 ].T
 
         position_Limits = ( self.dollar_Position_Limit / current_Prices ).astype( int )
         new_Position = np.clip( new_Position_Original, -position_Limits, position_Limits ).astype( int )
@@ -60,7 +60,7 @@ class Training_Environment():
         position_Value = new_Position.dot( current_Prices )
         self.cash -= current_Prices.dot( delta_Pos )
 
-        today_PnL = cash + position_Value - self.value
+        today_PnL = self.cash + position_Value - self.value
 
         self.value = self.cash + position_Value
 
@@ -77,7 +77,7 @@ class Training_Environment():
         reward, today_PnL = self._calculateStepReward( return_Position )
 
         self.previous_Position = return_Position
-        self.timestep += 1
+        self.timestep_Idx += 1
 
         if( self.timestep_Idx < self.episode_Size ):
             self._setTimestepPricesSoFar( self.timestep_Idx )
