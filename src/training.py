@@ -16,7 +16,7 @@ class Training_Environment():
 
     def _setInitialConditions( self ):
         self.episode_Size = random.randint( 50, 500 )
-        self.episode_Start = random.randint( 0, self.number_Of_Timesteps - self.episode_Size )
+        self.episode_Start = random.randint( 0, self.number_Of_Timesteps - self.episode_Size - 230 )
 
         self.prices_Values = self.all_Prices_Values[ : ,self.episode_Start : self.episode_Start + self.episode_Size + 1 : 1 ]
 
@@ -125,16 +125,19 @@ def runEpisode( environement, policy, device, do_Print = False ):
 
         state = next_State
 
-    if do_Print:
-        mean_PnL = np.mean( daily_PnL_Array )
-        std_PnL = np.std( daily_PnL_Array )
 
+    mean_PnL = np.mean( daily_PnL_Array )
+    std_PnL = np.std( daily_PnL_Array )
+
+    if do_Print:
         sharpe_Ratio = mean_PnL / std_PnL
 
         print( "Perforamnce : " )
         print( "\tmean_PnL : " + str( mean_PnL ) )
         print( "\tstd_PnL : " + str( std_PnL ) )
         print( "\tSR : " + str( sharpe_Ratio ) )
+
+    reward_Array = np.divide( np.asarray( reward_Array ), std_PnL + 10 )
 
     return log_Prob_Array, reward_Array
 
@@ -196,7 +199,7 @@ if __name__ == "__main__":
     print( "TRAINING" )
     print( "" )
 
-    trained_Policy, episode_Rewards = runTrainingLoop(number_Of_Episodes = 10)
+    trained_Policy, episode_Rewards = runTrainingLoop(number_Of_Episodes = 1000)
 
     onan.setGlobalVariable( "g_neural_Net_Instance", trained_Policy )
     onan.setGlobalVariable( "g_strategy_Selection_Enum", 0 )
@@ -212,6 +215,8 @@ if __name__ == "__main__":
 
     print( "" )
     print( "Score : " + str( score ) )
+
+    torch.save( trained_Policy.state_dict(), "./model_save" )
 
 
 
