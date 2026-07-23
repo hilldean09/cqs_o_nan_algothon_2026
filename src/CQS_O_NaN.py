@@ -95,7 +95,7 @@ def getMyPosition( prcSoFar ):
 #   2 : Errors and warnings
 #   3 : Errors, warnings, and general info
 
-g_logging_Verbosity = 3
+g_logging_Verbosity = 0
 
 # Error Logging #
 def logErrorHeader( function_Name_String, error_String ):
@@ -433,12 +433,12 @@ def getMarketMovingMeanLogReturns( prices_So_Far, desired_Latest_Day, desired_Wi
     for day_Offset in range( window_Size ):
         sum_Of_Mean_Log_Returns += getMarketMeanLogReturns( prices_So_Far, window_Start_Day + day_Offset )
 
-    mean_Of_Mean_Log_Retursn = sum_Of_Mean_Log_Returns / window_Size
+    mean_Of_Mean_Log_Returns = sum_Of_Mean_Log_Returns / window_Size
 
-    if( mean_Of_Mean_Log_Retursn == 0.0 ):
-        logWarningHeader( "getMarketMovingMeanLogReturns",  "Returning 0" )
+    if np.isnan( mean_Of_Mean_Log_Returns ):
+        mean_Of_Mean_Log_Returns = 0.1
 
-    return mean_Of_Mean_Log_Retursn
+    return mean_Of_Mean_Log_Returns
 
 # Lead-Lag Correlation #
 # Reference : https://financialnoob.substack.com/p/statistical-arbitrage-with-lead-lag
