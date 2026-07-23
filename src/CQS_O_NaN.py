@@ -163,6 +163,9 @@ def getSeriesPairPearsonCorrelationValue( first_Series, second_Series ):
 
     correlation_Value = ( sum_Of_Products - number_Of_Values * first_Mean * second_Mean ) / ( np.sqrt( first_Sum_Of_Squares - number_Of_Values * first_Mean * first_Mean ) * np.sqrt( second_Sum_Of_Squares - number_Of_Values * second_Mean * second_Mean ) )
 
+    if np.isnan( correlation_Value ):
+        correlation_Value = 0
+
     #Error detection
     if( correlation_Value > 1.1 or correlation_Value < -1.1 ):
         logErrorHeader( "getSeriesPairPearsonCorrelationValue", "Correlation value outside of expected range" )
@@ -550,9 +553,7 @@ def updateNeuralNetOutputHistory( outputs ):
     global g_nn_output_History_Buffer
 
     g_nn_output_History_Buffer = np.roll( g_nn_output_History_Buffer, 1 )
-    g_nn_output_History_Buffer[ 0 ] = np.asarray( outputs )
-
-    print( g_nn_output_History_Buffer )
+    g_nn_output_History_Buffer[ 0 ] = outputs.detach().numpy()
 
 
 # Input parameters
@@ -671,9 +672,9 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
     return_Position = np.zeros( number_Of_Instruments )
 
     # Moving crossover strategy
-    return_Position = np.add( return_Position, multipliers[ 0 ] * runMovingAverageCrossoverStrategy( prices_So_Far ) )
-    return_Position = np.add( return_Position, multipliers[ 1 ] * runAlgorithm1Strategy( prices_So_Far ) )
-    return_Position = np.add( return_Position, multipliers[ 2 ] * runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ) )
+    return_Position = np.add( return_Position, multipliers.detach().numpy()[ 0 ] * runMovingAverageCrossoverStrategy( prices_So_Far ) )
+    return_Position = np.add( return_Position, multipliers.detach().numpy()[ 1 ] * runAlgorithm1Strategy( prices_So_Far ) )
+    return_Position = np.add( return_Position, multipliers.detach().numpy()[ 2 ] * runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ) )
 
     return return_Position, log_Prob
 
