@@ -170,6 +170,7 @@ def getSeriesPairPearsonCorrelationValue( first_Series, second_Series ):
     if( correlation_Value > 1.1 or correlation_Value < -1.1 ):
         logErrorHeader( "getSeriesPairPearsonCorrelationValue", "Correlation value outside of expected range" )
         logErrorValue( "correlation_Value", correlation_Value )
+        correlation_Value = 0
 
     return correlation_Value
 

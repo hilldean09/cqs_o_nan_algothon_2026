@@ -84,6 +84,7 @@ class Training_Environment():
             output_State = onan.getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
             output_End = False
         else:
+            output_State = onan.getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
             output_End = True
 
         return output_State, reward, output_End, log_Prob, today_PnL
@@ -157,11 +158,10 @@ def runTrainingLoop( number_Of_Episodes = 500, gamme = 0.99, lr = 1e-2 ):
     episode_Rewards = []
 
     for episode in range( number_Of_Episodes ):
+        print( "Episode : " + str( episode ) )
         if episode % 50 == 0:
             do_Print = True
 
-            print( "" )
-            print( "Episode : " + str( episode ) )
             print( "Average episode reward : " + str( np.mean( episode_Rewards ) ) )
         else:
             do_Print = False
