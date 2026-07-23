@@ -555,7 +555,7 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 
 g_nn_number_Of_Controlled_Strategies = 3
 g_nn_number_Of_Outputs = 2 * g_nn_number_Of_Controlled_Strategies
-g_nn_number_Of_Inputs = 6 + g_nn_number_Of_Outputs
+g_nn_number_Of_Inputs = 6
 
 g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Outputs ) )
 
@@ -584,8 +584,8 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     state.append( timestep_Idx )
 
     # Previous outputs
-    for last_Output in g_nn_output_History_Buffer[ -1 ]:
-        state.append( last_Output )
+    # for last_Output in g_nn_output_History_Buffer[ -1 ]:
+    #    state.append( last_Output )
 
     # Market log mean returns (long and short)
     state.append( getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size ) )
