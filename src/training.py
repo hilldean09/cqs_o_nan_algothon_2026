@@ -23,8 +23,8 @@ class Training_Environment():
         self.timestep_Idx = 0
         self.previous_Position = np.zeros( self.number_Of_Instruments )
 
-        self.cash = 0
-        self.value = 0
+        self.cash = 0.0
+        self.value = 0.0
 
     def _setTimestepPricesSoFar( self, timestep_Idx ):
         self.prices_So_Far = self.prices_Values[ : , 0 : timestep_Idx + 1 : 1 ]
@@ -35,6 +35,7 @@ class Training_Environment():
         self._setTimestepPricesSoFar( self.timestep_Idx )
 
         output_State = onan.getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
+        output_State = np.add( output_State, 1e-2 )
 
         return output_State, 0, False
 
@@ -55,12 +56,20 @@ class Training_Environment():
         position_Limits = ( self.dollar_Position_Limit / current_Prices ).astype( int )
         new_Position = np.clip( new_Position_Original, -position_Limits, position_Limits ).astype( int )
 
-        delta_Pos = new_Position - self.previous_Position
+        delta_Pos = np.subtract( new_Position , self.previous_Position )
 
         position_Value = new_Position.dot( current_Prices )
         self.cash -= current_Prices.dot( delta_Pos )
 
         today_PnL = self.cash + position_Value - self.value
+
+        """
+        print( "_calculateStepReward : " )
+        print( "\ttoday_PnL : " + str( today_PnL ) )
+        print( "\tposition_Value : " + str( position_Value ) )
+        print( "\tself.cash : " + str( self.cash ) )
+        print( "\tself.value : " + str( self.value ) )
+            """
 
         self.value = self.cash + position_Value
 
@@ -73,6 +82,8 @@ class Training_Environment():
         # returns a state vector corresponding to 
         # the neural net inputs
         return_Position, log_Prob = onan.runNeuralNetMasterStrategy( self.prices_So_Far, logits )
+
+        return_Position = return_Position.astype( int )
 
         reward, today_PnL = self._calculateStepReward( return_Position )
 
@@ -148,7 +159,7 @@ def computeLoss( log_Prob_Array, return_Array ):
 
     return loss
 
-def runTrainingLoop( number_Of_Episodes = 500, gamme = 0.99, lr = 1e-2 ):
+def runTrainingLoop( number_Of_Episodes = 500, gamme = 0.99, lr = 1e-4 ):
     device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" )
     environement = Training_Environment()
 
@@ -159,7 +170,7 @@ def runTrainingLoop( number_Of_Episodes = 500, gamme = 0.99, lr = 1e-2 ):
 
     for episode in range( number_Of_Episodes ):
         print( "Episode : " + str( episode ) )
-        if episode % 50 == 0:
+        if episode % 2 == 0:
             do_Print = True
 
             print( "Average episode reward : " + str( np.mean( episode_Rewards ) ) )
@@ -185,9 +196,10 @@ if __name__ == "__main__":
     print( "TRAINING" )
     print( "" )
 
-    trained_Policy, episode_Rewards = runTrainingLoop(10)
+    trained_Policy, episode_Rewards = runTrainingLoop(number_Of_Episodes = 10)
 
     onan.setGlobalVariable( "g_neural_Net_Instance", trained_Policy )
+    onan.setGlobalVariable( "g_strategy_Selection_Enum", 0 )
 
     # Copied from eval
     pricesFile = "./prices.txt"

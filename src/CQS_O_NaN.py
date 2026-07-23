@@ -73,11 +73,18 @@ g_strategy_Selection_Enum = 1
 def getMyPosition( prcSoFar ):
     global current_Position
     global g_strategy_Selection_Enum
+    global g_neural_Net_Instance
 
     ( number_Of_Instruments, number_Of_Timesteps ) = prcSoFar.shape
 
     if( number_Of_Timesteps < 2 ):
         return np.zeros( number_Of_Instruments )
+
+    if( g_strategy_Selection_Enum == 0 ):
+        state = getNeuralNetInputs( prcSoFar, number_Of_Timesteps - 1 )
+        state_tensor = torch.as_tensor( state, dtype=torch.float32, device = device )
+        logits = g_neural_Net_Instance( state_tensor )
+        return_Position = runNeuralNetMasterStrategy( prcSoFar, logits )
 
     if( g_strategy_Selection_Enum == 1 ):
         return_Position = runMovingAverageCrossoverStrategy( prcSoFar )
@@ -554,7 +561,7 @@ def updateNeuralNetOutputHistory( outputs ):
     global g_nn_output_History_Buffer
 
     g_nn_output_History_Buffer = np.roll( g_nn_output_History_Buffer, 1 )
-    g_nn_output_History_Buffer[ 0 ] = outputs.detach().numpy()
+    g_nn_output_History_Buffer[ 0 ] = outputs.cpu().detach().numpy()
 
 
 # Input parameters
@@ -589,6 +596,10 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     market_Statistical_Volatility = getMarketStatisticalAssetLogVolatility( prices_So_Far, timestep_Idx, g_nn_Market_Statistical_Realized_Volatility_Window_Size )
     state.append( market_Statistical_Volatility[ 0 ] )
     state.append( market_Statistical_Volatility[ 1 ] )
+
+    for state_Entry in state:
+        if np.isnan( state_Entry ):
+            print( state )
 
     return state
 
@@ -673,9 +684,9 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
     return_Position = np.zeros( number_Of_Instruments )
 
     # Moving crossover strategy
-    return_Position = np.add( return_Position, multipliers.detach().numpy()[ 0 ] * runMovingAverageCrossoverStrategy( prices_So_Far ) )
-    return_Position = np.add( return_Position, multipliers.detach().numpy()[ 1 ] * runAlgorithm1Strategy( prices_So_Far ) )
-    return_Position = np.add( return_Position, multipliers.detach().numpy()[ 2 ] * runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ) )
+    return_Position = np.add( return_Position, multipliers.cpu().detach().numpy()[ 0 ] * runMovingAverageCrossoverStrategy( prices_So_Far ) )
+    return_Position = np.add( return_Position, multipliers.cpu().detach().numpy()[ 1 ] * runAlgorithm1Strategy( prices_So_Far ) )
+    return_Position = np.add( return_Position, multipliers.cpu().detach().numpy()[ 2 ] * runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ) )
 
     return return_Position, log_Prob
 
