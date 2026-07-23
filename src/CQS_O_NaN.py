@@ -66,7 +66,7 @@ g_position_History_Buffer = np.zeros( ( g_number_Of_Instruments, g_trade_History
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
 #   1 : moving average crossover
-g_strategy_Selection_Enum = 1
+g_strategy_Selection_Enum = 0
 
 # NOTE: We cannot change the argument variable name from
 # prcSoFar
@@ -584,7 +584,7 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     state.append( timestep_Idx )
 
     # Previous outputs
-    for last_Output in range( g_nn_number_Of_Outputs ):
+    for last_Output in g_nn_output_History_Buffer[ -1 ]:
         state.append( last_Output )
 
     # Market log mean returns (long and short)
