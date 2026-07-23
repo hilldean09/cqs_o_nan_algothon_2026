@@ -72,6 +72,7 @@ class Training_Environment():
             """
 
         self.value = self.cash + position_Value
+        self.previous_Position = new_Position
 
         reward = today_PnL
 
@@ -87,7 +88,6 @@ class Training_Environment():
 
         reward, today_PnL = self._calculateStepReward( return_Position )
 
-        self.previous_Position = return_Position
         self.timestep_Idx += 1
 
         if( self.timestep_Idx < self.episode_Size ):

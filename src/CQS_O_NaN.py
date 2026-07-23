@@ -74,6 +74,7 @@ def getMyPosition( prcSoFar ):
     global current_Position
     global g_strategy_Selection_Enum
     global g_neural_Net_Instance
+    global g_torch_Device
 
     ( number_Of_Instruments, number_Of_Timesteps ) = prcSoFar.shape
 
@@ -82,9 +83,10 @@ def getMyPosition( prcSoFar ):
 
     if( g_strategy_Selection_Enum == 0 ):
         state = getNeuralNetInputs( prcSoFar, number_Of_Timesteps - 1 )
-        state_tensor = torch.as_tensor( state, dtype=torch.float32, device = device )
+        state_tensor = torch.as_tensor( state, dtype=torch.float32, device = g_torch_Device )
         logits = g_neural_Net_Instance( state_tensor )
-        return_Position = runNeuralNetMasterStrategy( prcSoFar, logits )
+        return_Position, _ = runNeuralNetMasterStrategy( prcSoFar, logits )
+        return_Position = return_Position.astype( int )
 
     if( g_strategy_Selection_Enum == 1 ):
         return_Position = runMovingAverageCrossoverStrategy( prcSoFar )
@@ -664,7 +666,7 @@ class MasterNeuralNet( nn.Module ):
         return logits
 
 # Instance
-g_neural_Net_Instance = MasterNeuralNet()
+g_neural_Net_Instance = MasterNeuralNet().to( g_torch_Device )
 
 
 # Neural Net Master Strategy #
@@ -685,8 +687,10 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
 
     # Moving crossover strategy
     return_Position = np.add( return_Position, multipliers.cpu().detach().numpy()[ 0 ] * runMovingAverageCrossoverStrategy( prices_So_Far ) )
-    return_Position = np.add( return_Position, multipliers.cpu().detach().numpy()[ 1 ] * runAlgorithm1Strategy( prices_So_Far ) )
+    if( number_Of_Timesteps > 2 ):
+        return_Position = np.add( return_Position, multipliers.cpu().detach().numpy()[ 1 ] * runAlgorithm1Strategy( prices_So_Far ) )
     return_Position = np.add( return_Position, multipliers.cpu().detach().numpy()[ 2 ] * runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ) )
+    # print( return_Position )
 
     return return_Position, log_Prob
 
