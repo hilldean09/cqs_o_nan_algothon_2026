@@ -137,7 +137,7 @@ def runEpisode( environement, policy, device, do_Print = False ):
         print( "\tstd_PnL : " + str( std_PnL ) )
         print( "\tSR : " + str( sharpe_Ratio ) )
 
-    reward_Array = np.divide( np.asarray( reward_Array ), std_PnL + 10 )
+    reward_Array = np.divide( np.asarray( reward_Array ), np.sqrt( std_PnL + 10 ) )
 
     return log_Prob_Array, reward_Array
 
