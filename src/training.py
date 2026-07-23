@@ -16,7 +16,7 @@ class Training_Environment():
 
     def _setInitialConditions( self ):
         self.episode_Size = random.randint( 50, 500 )
-        self.episode_Start = random.randint( 0, self.number_Of_Timesteps - self.episode_Size - 230 )
+        self.episode_Start = random.randint( 0, self.number_Of_Timesteps - self.episode_Size - 50 )
 
         self.prices_Values = self.all_Prices_Values[ : ,self.episode_Start : self.episode_Start + self.episode_Size + 1 : 1 ]
 
