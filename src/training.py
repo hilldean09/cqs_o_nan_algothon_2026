@@ -1,6 +1,7 @@
 # Training the master neural
 # network
 
+import datetime
 import random
 import numpy as np
 import pandas as pd
@@ -118,6 +119,13 @@ def runEpisode( environement, policy, device, do_Print = False ):
 
         logits = policy( state_tensor )
 
+        logits_Cpu = logits.cpu().detach().numpy()
+        logits_Is_NaN = False
+
+        for entry in logits_Cpu:
+            if np.isnan( entry ):
+                continue
+
         next_State, reward, done, log_Prob, today_PnL = environement.step( logits )
         daily_PnL_Array.append( today_PnL )
 
@@ -139,7 +147,7 @@ def runEpisode( environement, policy, device, do_Print = False ):
         print( "\tSR : " + str( sharpe_Ratio ) )
 
     # reward_Array = np.divide( np.asarray( reward_Array ), np.sqrt( std_PnL ) + 5 )
-    reward_Array = reward_Array / 1000
+    reward_Array = np.array( np.asarray( reward_Array ) / 1000 )
 
     return log_Prob_Array, reward_Array
 
@@ -218,7 +226,8 @@ if __name__ == "__main__":
     print( "" )
     print( "Score : " + str( score ) )
 
-    torch.save( trained_Policy.state_dict(), "./model_save_7" )
+    date_Time_String = str( datetime.datetime.now() )
+    torch.save( trained_Policy.state_dict(), "./model_save_" + date_Time_String )
 
 
 
