@@ -119,12 +119,8 @@ def runEpisode( environement, policy, device, do_Print = False ):
 
         logits = policy( state_tensor )
 
-        logits_Cpu = logits.cpu().detach().numpy()
-        logits_Is_NaN = False
-
-        for entry in logits_Cpu:
-            if np.isnan( entry ):
-                continue
+        if torch.isnan( logits ).any():
+            continue
 
         next_State, reward, done, log_Prob, today_PnL = environement.step( logits )
         daily_PnL_Array.append( today_PnL )
