@@ -651,13 +651,15 @@ class MasterNeuralNet( nn.Module ):
 
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential( 
-            nn.Linear( number_Of_Inputs, int( number_Of_Inputs * 1.5 )  ),
+            nn.Linear( number_Of_Inputs, int( number_Of_Inputs * 2 )  ),
             nn.ReLU(),
-            nn.Linear( int( number_Of_Inputs * 1.5 ), int( number_Of_Inputs * 1.5 ) ),
+            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Inputs * 2 ) ),
             nn.ReLU(),
-            nn.Linear( int( number_Of_Inputs * 1.5 ), int( number_Of_Outputs * 1.5 ) ),
+            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Inputs * 2 ) ),
             nn.ReLU(),
-            nn.Linear( int( number_Of_Outputs * 1.5 ), number_Of_Outputs )
+            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Outputs * 2 ) ),
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Outputs * 2 ), number_Of_Outputs )
         )
 
     def forward( self, x ):
