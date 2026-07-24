@@ -704,7 +704,7 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
     if( number_Of_Timesteps > 2 ):
         return_Position = np.add( return_Position, multipliers[ 1 ] * runAlgorithm1Strategy( prices_So_Far ) )
     return_Position = np.add( return_Position, multipliers[ 2 ] * runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ) )
-    return_Position = np.add( return_Position, multipliers[ 3 ] * runPairsTradingStrategy( prices_So_Far ) ) )
+    return_Position = np.add( return_Position, multipliers[ 3 ] * runPairsTradingStrategy( prices_So_Far ) )
     # print( return_Position )
 
     return return_Position, log_Prob

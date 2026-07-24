@@ -138,6 +138,7 @@ def runEpisode( environement, policy, device, do_Print = False ):
         print( "\tSR : " + str( sharpe_Ratio ) )
 
     reward_Array = np.divide( np.asarray( reward_Array ), np.sqrt( std_PnL ) + 5 )
+    reward_Array = reward_Array * 500 / environement.episode_Size
 
     return log_Prob_Array, reward_Array
 
@@ -199,7 +200,7 @@ if __name__ == "__main__":
     print( "TRAINING" )
     print( "" )
 
-    trained_Policy, episode_Rewards = runTrainingLoop(number_Of_Episodes = 500)
+    trained_Policy, episode_Rewards = runTrainingLoop(number_Of_Episodes = 750)
 
     onan.setGlobalVariable( "g_neural_Net_Instance", trained_Policy )
     onan.setGlobalVariable( "g_strategy_Selection_Enum", 0 )
@@ -216,7 +217,7 @@ if __name__ == "__main__":
     print( "" )
     print( "Score : " + str( score ) )
 
-    torch.save( trained_Policy.state_dict(), "./model_save" )
+    torch.save( trained_Policy.state_dict(), "./model_save_3" )
 
 
 
