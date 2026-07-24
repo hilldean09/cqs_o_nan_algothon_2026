@@ -276,6 +276,8 @@ def getAssetRealizedVariance( prices_So_Far, asset_Idx : int, desired_Latest_Day
         logErrorHeader( "getAssetRealizedVariance", "Returning negative value" )
         logErrorValue( "realized_Variance", realized_Variance )
 
+    realized_Variance += 1e-8
+
     return realized_Variance
 
 def getAssetRealizedVolatility( prices_So_Far, asset_Idx, desired_Latest_Day, desired_Window_Size ):
@@ -555,7 +557,7 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 
 g_nn_number_Of_Controlled_Strategies = 4
 g_nn_number_Of_Outputs = 2 * g_nn_number_Of_Controlled_Strategies
-g_nn_number_Of_Inputs = 6
+g_nn_number_Of_Inputs = 7 + 4
 
 g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Outputs ) )
 
@@ -579,6 +581,10 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     global g_nn_Market_Statistical_Realized_Volatility_Window_Size
     global g_nn_output_History_Buffer
 
+    global g_pairs_Trading_List
+    global g_pairs_Trading_Beta_Window
+    global g_pairs_Trading_Z_Window
+
     state = []
 
     state.append( timestep_Idx )
@@ -599,9 +605,14 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     state.append( market_Statistical_Volatility[ 0 ] )
     state.append( market_Statistical_Volatility[ 1 ] )
 
-    for state_Entry in state:
-        if np.isnan( state_Entry ):
-            print( state )
+    # Asset 0 Volatility
+    state.append( getAssetRealizedVolatility( prices_So_Far, 0, timestep_Idx, g_nn_Market_Statistical_Realized_Volatility_Window_Size ) )
+
+    # Pair-wise trading Z-scores
+    for asset_Idx_Pair in g_pairs_Trading_List:
+        beta_Value = getPairHedgeRatio( prices_So_Far, asset_Idx_Pair[ 0 ], asset_Idx_Pair[ 1 ], g_pairs_Trading_Beta_Window )
+        z_Score = getPairSpreadZScore( prices_So_Far, asset_Idx_Pair[ 0 ], asset_Idx_Pair[ 1 ], beta_Value, g_pairs_Trading_Z_Window )
+        state.append( z_Score )
 
     return state
 
@@ -611,7 +622,7 @@ g_torch_Device = torch.accelerator.current_accelerator().type if torch.accelerat
 
 # NOTE: Rewritten from Claude
 # NOTE: Mean and log_Std are tensors
-def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 3.0 ):
+def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 1.5 ):
     # Clamping to prevent numerical
     # instability
     log_Std = torch.clamp( log_Std, min = -20.0, max = 2.0 )
@@ -930,8 +941,8 @@ Instrument indices (from prices.txt column order):
 
 g_pairs_Trading_List = [ ( 49, 50 ), ( 36, 41 ), ( 31, 43 ), ( 33, 46 ) ]   # (asset_A_idx, asset_B_idx)
 
-g_pairs_Trading_Beta_Window = 120     # trailing days used to estimate the hedge ratio
-g_pairs_Trading_Z_Window = 60         # trailing days used to compute the spread's mean/std
+g_pairs_Trading_Beta_Window = 60     # trailing days used to estimate the hedge ratio
+g_pairs_Trading_Z_Window = 30         # trailing days used to compute the spread's mean/std
 g_pairs_Trading_Entry_Z = 2.0         # |z| above this opens a position
 g_pairs_Trading_Exit_Z = 0.5          # |z| below this closes the position
 g_pairs_Trading_Dollars_Per_Leg = 8000.0   # per-leg dollar size, kept under the $10k instrument limit
