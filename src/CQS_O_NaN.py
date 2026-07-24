@@ -587,7 +587,7 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
 
     state = []
 
-    state.append( timestep_Idx )
+    state.append( timestep_Idx / 500 )
 
     # Previous outputs
     # for last_Output in g_nn_output_History_Buffer[ -1 ]:

@@ -119,9 +119,6 @@ def runEpisode( environement, policy, device, do_Print = False ):
 
         logits = policy( state_tensor )
 
-        if torch.isnan( logits ).any():
-            continue
-
         next_State, reward, done, log_Prob, today_PnL = environement.step( logits )
         daily_PnL_Array.append( today_PnL )
 
@@ -157,7 +154,7 @@ def computeReturns( reward_Array, gamma = 0.99 ):
 
     return_Array = torch.tensor( return_Array, dtype=torch.float32 )
 
-    return_Array = ( return_Array - return_Array.mean() ) / return_Array.std() + 1e-8
+    return_Array = ( return_Array - return_Array.mean() ) / ( return_Array.std() + 1e-8 )
 
     return return_Array
 
@@ -191,7 +188,15 @@ def runTrainingLoop( number_Of_Episodes = 500, gamme = 0.99, lr = 1e-2 ):
         loss = computeLoss( log_Prob_Array, return_Array )
 
         optimiser.zero_grad()
+
+        if torch.isnan( loss ).any():
+            print( "DEBUG: NaN Detected" )
+            continue
+
         loss.backward()
+
+        torch.nn.utils.clip_grad_norm_(policy.parameters(), max_norm=1.0)
+
         optimiser.step()
 
         total_Reward = sum( reward_Array )
