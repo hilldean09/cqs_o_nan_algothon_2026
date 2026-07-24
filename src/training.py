@@ -163,7 +163,7 @@ def computeLoss( log_Prob_Array, return_Array ):
 
     return loss
 
-def runTrainingLoop( number_Of_Episodes = 500, gamme = 0.99, lr = 1e-4 ):
+def runTrainingLoop( number_Of_Episodes = 500, gamme = 0.99, lr = 1e-2 ):
     device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" )
     environement = Training_Environment()
 
@@ -217,7 +217,7 @@ if __name__ == "__main__":
     print( "" )
     print( "Score : " + str( score ) )
 
-    torch.save( trained_Policy.state_dict(), "./model_save_3" )
+    torch.save( trained_Policy.state_dict(), "./model_save_6" )
 
 
 
