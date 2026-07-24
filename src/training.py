@@ -15,7 +15,8 @@ import CQS_O_NaN as onan
 class Training_Environment():
 
     def _setInitialConditions( self ):
-        self.episode_Size = random.randint( 50, 500 )
+        # self.episode_Size = random.randint( 50, 500 )
+        self.episode_Size = 250
         self.episode_Start = random.randint( 0, self.number_Of_Timesteps - self.episode_Size - 50 )
 
         self.prices_Values = self.all_Prices_Values[ : ,self.episode_Start : self.episode_Start + self.episode_Size + 1 : 1 ]
@@ -137,8 +138,8 @@ def runEpisode( environement, policy, device, do_Print = False ):
         print( "\tstd_PnL : " + str( std_PnL ) )
         print( "\tSR : " + str( sharpe_Ratio ) )
 
-    reward_Array = np.divide( np.asarray( reward_Array ), np.sqrt( std_PnL ) + 5 )
-    reward_Array = reward_Array * 500 / environement.episode_Size
+    # reward_Array = np.divide( np.asarray( reward_Array ), np.sqrt( std_PnL ) + 5 )
+    reward_Array = reward_Array / 1000
 
     return log_Prob_Array, reward_Array
 
@@ -217,7 +218,7 @@ if __name__ == "__main__":
     print( "" )
     print( "Score : " + str( score ) )
 
-    torch.save( trained_Policy.state_dict(), "./model_save_6" )
+    torch.save( trained_Policy.state_dict(), "./model_save_7" )
 
 
 
