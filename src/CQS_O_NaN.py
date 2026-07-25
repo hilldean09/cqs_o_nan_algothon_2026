@@ -574,6 +574,28 @@ def resetNeuralNetOutputHistory():
     global g_nn_output_History_Buffer
     g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Controlled_Strategies ) )
 
+def updatePositionHistory( return_Position ):
+    global g_trade_History_Buffer_Size
+
+    g_trade_History_Buffer_Size = np.roll( g_trade_History_Buffer_Size, 1 )
+    g_trade_History_Buffer_Size[ 0 ] = return_Position
+
+def resetPositionHistory():
+    global g_trade_History_Buffer_Size
+    g_trade_History_Buffer_Size = np.zeros( ( g_number_Of_Instruments, g_trade_History_Buffer_Size ) )
+
+def getCurrentPrices( prices_So_Far, timestep_Idx ):
+    current_Prices = self.prices_So_Far[ : , timestep_Idx ].T
+
+    return current_Prices
+
+def updatePnLHistory( prices_So_Far ):
+    pass
+
+def resetPnLHistory():
+    global g_previous_PnL_Buffer
+    g_previous_PnL_Buffer = np.zeros( g_trade_History_Buffer_Size )
+
 
 # Input parameters
 g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size = 10

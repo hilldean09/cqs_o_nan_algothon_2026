@@ -40,6 +40,8 @@ class Training_Environment():
         output_State = onan.getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
         output_State = np.add( output_State, 1e-2 )
         onan.resetNeuralNetOutputHistory()
+        onan.resetPositionHistory()
+        onan.resetPnLHistory()
 
         return output_State, 0, False
 
@@ -209,6 +211,8 @@ def runTrainingLoop( policy, number_Of_Episodes = 500, gamme = 0.99, lr = 1e-3 )
             policy.load_state_dict( best_Model_State )
             optimiser.load_state_dict( best_Optim_State )
             onan.resetNeuralNetOutputHistory()
+            onan.resetPositionHistory()
+            onan.resetPnLHistory()
             continue
 
         loss.backward()
@@ -223,6 +227,8 @@ def runTrainingLoop( policy, number_Of_Episodes = 500, gamme = 0.99, lr = 1e-3 )
             policy.load_state_dict( best_Model_State )
             optimiser.load_state_dict( best_Optim_State )
             onan.resetNeuralNetOutputHistory()
+            onan.resetPositionHistory()
+            onan.resetPnLHistory()
             continue
 
         torch.nn.utils.clip_grad_norm_(policy.parameters(), max_norm=1.0)
@@ -236,6 +242,8 @@ def runTrainingLoop( policy, number_Of_Episodes = 500, gamme = 0.99, lr = 1e-3 )
             policy.load_state_dict( best_Model_State )
             optimiser.load_state_dict( best_Optim_State )
             onan.resetNeuralNetOutputHistory()
+            onan.resetPositionHistory()
+            onan.resetPnLHistory()
             continue
 
         # This episode was clean - it becomes the new checkpoint
