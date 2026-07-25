@@ -560,7 +560,7 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 
 g_nn_number_Of_Controlled_Strategies = 4
 g_nn_number_Of_Outputs = 2 * g_nn_number_Of_Controlled_Strategies
-g_nn_number_Of_Inputs = 1 g_nn_number_Of_Outputs + 2 + 5 + 1 + 4
+g_nn_number_Of_Inputs = 1 + g_nn_number_Of_Outputs + 2 + 5 + 2 + 4
 
 g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Outputs ) )
 
@@ -575,14 +575,16 @@ def updateNeuralNetOutputHistory( outputs ):
 g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size = 10
 g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size = 50
 g_nn_Market_Correlation_Window_Size = 5
-g_nn_Market_Long_Statistical_Realized_Volatility_Window_Size = 5
-g_nn_Market_Short_Statistical_Realized_Volatility_Window_Size = 20
+g_nn_Market_Short_Statistical_Realized_Volatility_Window_Size = 5
+g_nn_Market_Long_Statistical_Realized_Volatility_Window_Size = 20
 
 def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     global g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size
     global g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size
     global g_nn_Market_Correlation_Window_Size
-    global g_nn_Market_Statistical_Realized_Volatility_Window_Size
+    global g_nn_Market_Short_Statistical_Realized_Volatility_Window_Size
+    global g_nn_Market_Long_Statistical_Realized_Volatility_Window_Size
+
     global g_nn_output_History_Buffer
 
     global g_pairs_Trading_List
@@ -613,11 +615,17 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     state.append( market_Long_Statistical_Volatility[ 0 ] )
     state.append( market_Long_Statistical_Volatility[ 1 ] )
 
-    market_Short_Long_Mean_Volatility_Ratio = market_Short_Statistical_Volatility[ 0 ] / market_Long_Statistical_Volatility[ 0 ]
+    market_Short_Long_Mean_Volatility_Ratio = market_Short_Statistical_Volatility[ 0 ] / ( market_Long_Statistical_Volatility[ 0 ] + 1e-8 )
     state.append( market_Short_Long_Mean_Volatility_Ratio )
 
     # Asset 0 Volatility
-    state.append( getAssetRealizedVolatility( prices_So_Far, 0, timestep_Idx, g_nn_Market_Statistical_Realized_Volatility_Window_Size ) )
+    asset_0_Short_RVol = getAssetRealizedVolatility( prices_So_Far, 0, timestep_Idx, g_nn_Market_Short_Statistical_Realized_Volatility_Window_Size )
+    asset_0_Long_RVol = getAssetRealizedVolatility( prices_So_Far, 0, timestep_Idx, g_nn_Market_Long_Statistical_Realized_Volatility_Window_Size )
+    asset_0_Short_Long_RVol_Ratio = asset_0_Short_RVol / ( asset_0_Long_RVol + 1e-8 )
+
+    state.append( asset_0_Short_RVol )
+    state.append( asset_0_Long_RVol )
+    state.append( asset_0_Short_Long_RVol_Ratio )
 
     # Pair-wise trading Z-scores
     for asset_Idx_Pair in g_pairs_Trading_List:
