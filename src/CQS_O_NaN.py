@@ -604,7 +604,8 @@ def updatePositionHistory( prices_So_Far, new_Position_Original ):
 def resetPositionHistory():
     global g_position_History_Buffer
     global g_trade_History_Buffer_Size
-    g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size , number_Of_Instruments ) )
+    global g_number_Of_Instruments
+    g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size , g_number_Of_Instruments ) )
 
 
 def getCurrentPrices( prices_So_Far ):
@@ -722,8 +723,8 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
         z_Score = getPairSpreadZScore( prices_So_Far, asset_Idx_Pair[ 0 ], asset_Idx_Pair[ 1 ], beta_Value, g_pairs_Trading_Z_Window )
         state.append( z_Score )
 
-    state.append( g_previous_PnL_Buffer[ 0 ] )
-    state.append( g_previous_PnL_Buffer[ 1 ] )
+    state.append( g_previous_PnL_Buffer[ 0 ] / 5000 )
+    state.append( g_previous_PnL_Buffer[ 1 ] / 5000 )
 
     return state
 

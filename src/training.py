@@ -19,7 +19,7 @@ class Training_Environment():
     def _setInitialConditions( self ):
         # self.episode_Size = random.randint( 50, 500 )
         self.episode_Size = 250
-        self.episode_Start = random.randint( 0, self.number_Of_Timesteps - self.episode_Size - 250 )
+        self.episode_Start = random.randint( 0, self.number_Of_Timesteps - self.episode_Size - 120 )
 
         self.prices_Values = self.all_Prices_Values[ : ,self.episode_Start : self.episode_Start + self.episode_Size + 1 : 1 ]
 
@@ -270,7 +270,7 @@ if __name__ == "__main__":
 
     # policy.load_state_dict(torch.load( "./model_save_25_i3", weights_only=True))
 
-    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 100)
+    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 800)
 
     onan.setGlobalVariable( "g_neural_Net_Instance", trained_Policy )
     onan.setGlobalVariable( "g_strategy_Selection_Enum", 0 )
