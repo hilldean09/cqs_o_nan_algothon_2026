@@ -55,6 +55,13 @@ feedback.
 ##### Code Start #####
 
 g_number_Of_Instruments = 51
+
+g_position_Limits = np.full( g_number_Of_Instruments, 10_000 )
+g_position_Limits[ 0 ] = 100_000
+
+g_cash = 0.0
+g_value = 0.0
+
 current_Position = np.zeros( g_number_Of_Instruments )
 
 g_trade_History_Buffer_Size = 3
@@ -76,6 +83,8 @@ def getMyPosition( prcSoFar ):
     global g_neural_Net_Instance
     global g_torch_Device
 
+    updatePnLHistory( prcSoFar )
+
     ( number_Of_Instruments, number_Of_Timesteps ) = prcSoFar.shape
 
     if( number_Of_Timesteps < 2 ):
@@ -95,6 +104,8 @@ def getMyPosition( prcSoFar ):
         return_Position = runPairsTradingStrategy( prcSoFar )
 
     current_Position = return_Position
+
+    updatePositionHistory( prcSoFar, current_Position )
 
     return current_Position 
 
@@ -560,7 +571,7 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 
 g_nn_number_Of_Controlled_Strategies = 4
 g_nn_number_Of_Outputs = 2 * g_nn_number_Of_Controlled_Strategies
-g_nn_number_Of_Inputs = 1 + g_nn_number_Of_Controlled_Strategies + 3 + 5 + 3 + 4
+g_nn_number_Of_Inputs = 1 + g_nn_number_Of_Controlled_Strategies + 3 + 5 + 3 + 4 + 2
 
 g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Controlled_Strategies ) )
 
@@ -574,27 +585,57 @@ def resetNeuralNetOutputHistory():
     global g_nn_output_History_Buffer
     g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Controlled_Strategies ) )
 
-def updatePositionHistory( return_Position ):
-    global g_trade_History_Buffer_Size
+def updatePositionHistory( prices_So_Far, new_Position_Original ):
+    global g_position_History_Buffer
 
-    g_trade_History_Buffer_Size = np.roll( g_trade_History_Buffer_Size, 1 )
-    g_trade_History_Buffer_Size[ 0 ] = return_Position
+    current_Prices = getCurrentPrices( prices_So_Far )
+    position_Limits = ( g_position_Limits / current_Prices ).astype( int )
+
+    new_Position = np.clip( new_Position_Original, -position_Limits, position_Limits ).astype( int )
+
+    g_position_History_Buffer = np.roll( g_position_History_Buffer, 1 )
+    g_position_History_Buffer[ 0 ] = new_Position
 
 def resetPositionHistory():
-    global g_trade_History_Buffer_Size
-    g_trade_History_Buffer_Size = np.zeros( ( g_number_Of_Instruments, g_trade_History_Buffer_Size ) )
+    global g_position_History_Buffer
+    g_position_History_Buffer = np.zeros( ( g_number_Of_Instruments, g_position_History_Buffer ) )
 
-def getCurrentPrices( prices_So_Far, timestep_Idx ):
-    current_Prices = self.prices_So_Far[ : , timestep_Idx ].T
+def getCurrentPrices( prices_So_Far ):
+    current_Prices = prices_So_Far[ : , -1 ].T
 
     return current_Prices
 
 def updatePnLHistory( prices_So_Far ):
-    pass
+    global g_previous_PnL_Buffer
+    global g_position_History_Buffer
+    global g_cash
+    global g_value
+
+    current_Prices = getCurrentPrices( prices_So_Far )
+
+    new_Position = g_position_History_Buffer[ 0 ]
+    previous_Position = g_position_History_Buffer[ 1 ]
+
+    delta_Pos = np.subtract( new_Position , previous_Position )
+
+    position_Value = new_Position.dot( current_Prices )
+    g_cash -= current_Prices.dot( delta_Pos )
+
+    today_PnL = g_cash + position_Value - g_value
+
+    g_value = g_cash + position_Value
+
+    g_previous_PnL_Buffer = np.roll( g_previous_PnL_Buffer, 1 )
+    g_previous_PnL_Buffer[ 0 ] = today_PnL
+
 
 def resetPnLHistory():
     global g_previous_PnL_Buffer
+    global g_cash 
+
     g_previous_PnL_Buffer = np.zeros( g_trade_History_Buffer_Size )
+    g_cash = 0.0
+    g_value = 0.0
 
 
 # Input parameters
@@ -612,6 +653,7 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     global g_nn_Market_Long_Statistical_Realized_Volatility_Window_Size
 
     global g_nn_output_History_Buffer
+    global g_previous_PnL_Buffer
 
     global g_pairs_Trading_List
     global g_pairs_Trading_Beta_Window
@@ -663,6 +705,9 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
         beta_Value = getPairHedgeRatio( prices_So_Far, asset_Idx_Pair[ 0 ], asset_Idx_Pair[ 1 ], g_pairs_Trading_Beta_Window )
         z_Score = getPairSpreadZScore( prices_So_Far, asset_Idx_Pair[ 0 ], asset_Idx_Pair[ 1 ], beta_Value, g_pairs_Trading_Z_Window )
         state.append( z_Score )
+
+    state.append( g_previous_PnL_Buffer[ 0 ] )
+    state.append( g_previous_PnL_Buffer[ 1 ] )
 
     return state
 
@@ -746,7 +791,6 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
 
     global g_nn_number_Of_Outputs
 
-
     mean_Logits_Slice = logits[ 0 : int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : 1 ]
     log_Std_Logits_Slice = logits[ int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : g_nn_number_Of_Outputs : 1 ]
 
@@ -764,7 +808,7 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
     return_Position = np.add( return_Position, multipliers[ 2 ] * runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ) )
     return_Position = np.add( return_Position, multipliers[ 3 ] * runPairsTradingStrategy( prices_So_Far ) )
     # print( return_Position )
-
+    
     return return_Position, log_Prob
 
 

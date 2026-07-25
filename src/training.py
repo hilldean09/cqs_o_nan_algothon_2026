@@ -28,6 +28,7 @@ class Training_Environment():
 
         self.cash = 0.0
         self.value = 0.0
+        self.comm = 0.0
 
     def _setTimestepPricesSoFar( self, timestep_Idx ):
         self.prices_So_Far = self.prices_Values[ : , 0 : timestep_Idx + 1 : 1 ]
@@ -54,7 +55,16 @@ class Training_Environment():
         self.dollar_Position_Limit = np.full( self.number_Of_Instruments, 10_000 )
         self.dollar_Position_Limit[ 0 ] = 100_000
 
+        self.commission_Rate = np.full( self.number_Of_Instruments, 0.0001 )
+        self.commission_Rate[ 0 ] = 0.00002
+
         self.reset()
+
+    def _calculateCommission( self, current_Prices, delta_Pos ):
+        dollar_Volumes = current_Prices * np.abs( delta_Pos )
+        commission = np.sum( dollar_Volumes * self.commission_Rate )
+
+        return commission
 
     def _calculateStepReward( self, new_Position_Original ):
         current_Prices = self.prices_So_Far[ : , -1 ].T
@@ -65,20 +75,13 @@ class Training_Environment():
         delta_Pos = np.subtract( new_Position , self.previous_Position )
 
         position_Value = new_Position.dot( current_Prices )
-        self.cash -= current_Prices.dot( delta_Pos )
+        self.cash -= current_Prices.dot( delta_Pos ) + self.comm
 
         today_PnL = self.cash + position_Value - self.value
 
-        """
-        print( "_calculateStepReward : " )
-        print( "\ttoday_PnL : " + str( today_PnL ) )
-        print( "\tposition_Value : " + str( position_Value ) )
-        print( "\tself.cash : " + str( self.cash ) )
-        print( "\tself.value : " + str( self.value ) )
-            """
-
         self.value = self.cash + position_Value
         self.previous_Position = new_Position
+        self.comm = self._calculateCommission( current_Prices, delta_Pos )
 
         reward = today_PnL
 
@@ -95,7 +98,6 @@ class Training_Environment():
         reward, today_PnL = self._calculateStepReward( return_Position )
 
         self.timestep_Idx += 1
-
         if( self.timestep_Idx < self.episode_Size ):
             self._setTimestepPricesSoFar( self.timestep_Idx )
             output_State = onan.getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
@@ -113,8 +115,8 @@ def runEpisode( environement, policy, device, do_Print = False ):
 
     log_Prob_Array = []
     reward_Array = []
-
     daily_PnL_Array = []
+
 
     done = False
 
