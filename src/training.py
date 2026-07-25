@@ -268,7 +268,7 @@ if __name__ == "__main__":
 
     # policy.load_state_dict(torch.load( "./model_save_25_i3", weights_only=True))
 
-    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 300)
+    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 800)
 
     onan.setGlobalVariable( "g_neural_Net_Instance", trained_Policy )
     onan.setGlobalVariable( "g_strategy_Selection_Enum", 0 )

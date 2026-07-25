@@ -810,6 +810,10 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
     log_Std_Logits_Slice = logits[ int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : g_nn_number_Of_Outputs : 1 ]
 
     multipliers, log_Prob = getNeuralNetMutlipliers( mean_Logits_Slice, log_Std_Logits_Slice )
+
+    if random.randint( 0, 100 ) > 95:
+        print( multipliers )
+
     multipliers = multipliers.cpu().detach().numpy()
 
     updateNeuralNetOutputHistory( multipliers )
