@@ -87,7 +87,6 @@ def getMyPosition( prcSoFar ):
     global g_neural_Net_Instance
     global g_torch_Device
 
-    updatePnLHistory( prcSoFar )
 
     ( number_Of_Instruments, number_Of_Timesteps ) = prcSoFar.shape
 
@@ -110,6 +109,7 @@ def getMyPosition( prcSoFar ):
     current_Position = return_Position
 
     updatePositionHistory( prcSoFar, current_Position )
+    updatePnLHistory( prcSoFar )
 
     return current_Position 
 
