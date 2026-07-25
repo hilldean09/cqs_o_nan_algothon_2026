@@ -72,7 +72,7 @@ g_trade_History_Buffer_Size = 3
 # TODO: Introduce PnL function
 g_previous_PnL_Buffer = np.zeros( g_trade_History_Buffer_Size )
 
-g_position_History_Buffer = np.zeros( ( g_number_Of_Instruments, g_trade_History_Buffer_Size ) )
+g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_number_Of_Instruments ) )
 
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
