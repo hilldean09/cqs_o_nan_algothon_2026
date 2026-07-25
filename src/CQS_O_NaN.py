@@ -3,6 +3,7 @@ import torch
 from torch import nn
 from torch.distributions import Normal, Independent, TransformedDistribution
 from torch.distributions.transforms import TanhTransform, AffineTransform
+import random
 
 """
 NOTE: Variable Name Prefixes - Dean
@@ -603,7 +604,7 @@ def updatePositionHistory( prices_So_Far, new_Position_Original ):
 def resetPositionHistory():
     global g_position_History_Buffer
     global g_trade_History_Buffer_Size
-    g_position_History_Buffer = np.zeros( ( g_number_Of_Instruments, g_trade_History_Buffer_Size ) )
+    g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size , number_Of_Instruments ) )
 
 
 def getCurrentPrices( prices_So_Far ):
@@ -811,7 +812,7 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
 
     multipliers, log_Prob = getNeuralNetMutlipliers( mean_Logits_Slice, log_Std_Logits_Slice )
 
-    if random.randint( 0, 100 ) > 95:
+    if random.randint( 0, 100 ) >= 99:
         print( multipliers )
 
     multipliers = multipliers.cpu().detach().numpy()
