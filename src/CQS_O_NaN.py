@@ -654,7 +654,7 @@ def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 1.5 ):
     # Clamping to prevent numerical
     # instability
     mean = torch.clamp( mean, min = -5.0, max = 5.0 )
-    log_Std = torch.clamp( log_Std, min = -10.0, max = 2.0 )
+    log_Std = torch.clamp( log_Std, min = -5.0, max = 2.0 )
     std = log_Std.exp()
 
     # Building unbounded Gaussian 
@@ -674,6 +674,10 @@ def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 1.5 ):
     multipliers = squashed_Distribution.rsample()
 
     log_Prob = squashed_Distribution.log_prob( multipliers )
+
+    log_Prob = torch.clamp( log_Prob, min = -10.0, max = 10.00 )
+    if torch.isnan( log_Prob ):
+        log_Prob = 0.0
 
     return multipliers, log_Prob
 

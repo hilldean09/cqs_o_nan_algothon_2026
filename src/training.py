@@ -190,8 +190,6 @@ def runTrainingLoop( policy, number_Of_Episodes = 500, gamme = 0.99, lr = 1e-3 )
 
         log_Prob_Array, reward_Array = runEpisode( environement, policy, device, do_Print = do_Print )
 
-        print( log_Prob_Array )
-
         for index in range( len( reward_Array ) ):
             if np.isnan( reward_Array[ index ] ):
                 print( "DEBUG: Zeroing NaN reward" )
@@ -220,6 +218,7 @@ def runTrainingLoop( policy, number_Of_Episodes = 500, gamme = 0.99, lr = 1e-3 )
             print( "DEBUG: NaN/Inf gradient detected (2) - rolling back to last good checkpoint" )
             policy.load_state_dict( best_Model_State )
             optimiser.load_state_dict( best_Optim_State )
+            onan.resetNeuralNetOutputHistory()
             continue
 
         torch.nn.utils.clip_grad_norm_(policy.parameters(), max_norm=1.0)
@@ -232,6 +231,7 @@ def runTrainingLoop( policy, number_Of_Episodes = 500, gamme = 0.99, lr = 1e-3 )
             print( "DEBUG: NaN weights after step - rolling back to last good checkpoint" )
             policy.load_state_dict( best_Model_State )
             optimiser.load_state_dict( best_Optim_State )
+            onan.resetNeuralNetOutputHistory()
             continue
 
         # This episode was clean - it becomes the new checkpoint
