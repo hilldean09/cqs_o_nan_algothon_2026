@@ -106,6 +106,9 @@ class Training_Environment():
             output_State = onan.getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
             output_End = True
 
+        onan.updatePositionHistory( self.prices_So_Far, return_Position )
+        onan.updatePnLHistory( self.prices_So_Far )
+
         return output_State, reward, output_End, log_Prob, today_PnL
 
 
@@ -135,7 +138,6 @@ def runEpisode( environement, policy, device, do_Print = False ):
         reward_Array.append( reward )
 
         state = next_State
-
 
     mean_PnL = np.mean( daily_PnL_Array )
     std_PnL = np.std( daily_PnL_Array )
@@ -268,7 +270,7 @@ if __name__ == "__main__":
 
     # policy.load_state_dict(torch.load( "./model_save_25_i3", weights_only=True))
 
-    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 800)
+    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 100)
 
     onan.setGlobalVariable( "g_neural_Net_Instance", trained_Policy )
     onan.setGlobalVariable( "g_strategy_Selection_Enum", 0 )
