@@ -59,8 +59,12 @@ g_number_Of_Instruments = 51
 g_position_Limits = np.full( g_number_Of_Instruments, 10_000 )
 g_position_Limits[ 0 ] = 100_000
 
+g_commission_Rate = np.full( g_number_Of_Instruments, 0.0001 )
+g_commission_Rate[ 0 ] = 0.00002
+
 g_cash = 0.0
 g_value = 0.0
+g_comm = 0.0
 
 current_Position = np.zeros( g_number_Of_Instruments )
 
@@ -598,7 +602,9 @@ def updatePositionHistory( prices_So_Far, new_Position_Original ):
 
 def resetPositionHistory():
     global g_position_History_Buffer
-    g_position_History_Buffer = np.zeros( ( g_number_Of_Instruments, g_position_History_Buffer ) )
+    global g_trade_History_Buffer_Size
+    g_position_History_Buffer = np.zeros( ( g_number_Of_Instruments, g_trade_History_Buffer_Size ) )
+
 
 def getCurrentPrices( prices_So_Far ):
     current_Prices = prices_So_Far[ : , -1 ].T
@@ -608,8 +614,10 @@ def getCurrentPrices( prices_So_Far ):
 def updatePnLHistory( prices_So_Far ):
     global g_previous_PnL_Buffer
     global g_position_History_Buffer
+    global g_commission_Rate
     global g_cash
     global g_value
+    global g_comm
 
     current_Prices = getCurrentPrices( prices_So_Far )
 
@@ -619,7 +627,7 @@ def updatePnLHistory( prices_So_Far ):
     delta_Pos = np.subtract( new_Position , previous_Position )
 
     position_Value = new_Position.dot( current_Prices )
-    g_cash -= current_Prices.dot( delta_Pos )
+    g_cash -= current_Prices.dot( delta_Pos ) + g_comm
 
     today_PnL = g_cash + position_Value - g_value
 
@@ -628,14 +636,21 @@ def updatePnLHistory( prices_So_Far ):
     g_previous_PnL_Buffer = np.roll( g_previous_PnL_Buffer, 1 )
     g_previous_PnL_Buffer[ 0 ] = today_PnL
 
+    dollar_Volumes = new_Position * np.abs( delta_Pos )
+    g_comm = np.sum( dollar_Volumes * g_commission_Rate )
+
 
 def resetPnLHistory():
+    global g_trade_History_Buffer_Size
     global g_previous_PnL_Buffer
     global g_cash 
+    global g_value
+    global g_comm
 
     g_previous_PnL_Buffer = np.zeros( g_trade_History_Buffer_Size )
     g_cash = 0.0
     g_value = 0.0
+    g_comm = 0.0
 
 
 # Input parameters
