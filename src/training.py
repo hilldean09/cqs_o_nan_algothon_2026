@@ -190,6 +190,8 @@ def runTrainingLoop( policy, number_Of_Episodes = 500, gamme = 0.99, lr = 1e-3 )
 
         log_Prob_Array, reward_Array = runEpisode( environement, policy, device, do_Print = do_Print )
 
+        print( log_Prob_Array )
+
         for index in range( len( reward_Array ) ):
             if np.isnan( reward_Array[ index ] ):
                 print( "DEBUG: Zeroing NaN reward" )

@@ -653,7 +653,8 @@ g_torch_Device = torch.accelerator.current_accelerator().type if torch.accelerat
 def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 1.5 ):
     # Clamping to prevent numerical
     # instability
-    log_Std = torch.clamp( log_Std, min = -20.0, max = 2.0 )
+    mean = torch.clamp( mean, min = -5.0, max = 5.0 )
+    log_Std = torch.clamp( log_Std, min = -10.0, max = 2.0 )
     std = log_Std.exp()
 
     # Building unbounded Gaussian 
