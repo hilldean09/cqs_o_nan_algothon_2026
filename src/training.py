@@ -1,6 +1,7 @@
 # Training the master neural
 # network
 
+import copy
 import datetime
 import random
 import numpy as np
@@ -165,12 +166,15 @@ def computeLoss( log_Prob_Array, return_Array ):
 
     return loss
 
-def runTrainingLoop( number_Of_Episodes = 500, gamme = 0.99, lr = 1e-2 ):
-    device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" )
+def runTrainingLoop( policy, number_Of_Episodes = 500, gamme = 0.99, lr = 1e-3 ):
     environement = Training_Environment()
 
-    policy = onan.MasterNeuralNet().to( device )
+
     optimiser = optim.Adam( policy.parameters(), lr = lr )
+
+    # Last known-good snapshot - this is what we roll back to
+    best_Model_State = copy.deepcopy( policy.state_dict() )
+    best_Optim_State = copy.deepcopy( optimiser.state_dict() )
 
     episode_Rewards = []
 
@@ -184,20 +188,50 @@ def runTrainingLoop( number_Of_Episodes = 500, gamme = 0.99, lr = 1e-2 ):
             do_Print = False
 
         log_Prob_Array, reward_Array = runEpisode( environement, policy, device, do_Print = do_Print )
+
+        for index in range( len( reward_Array ) ):
+            if np.isnan( reward_Array[ index ] ):
+                reward_Array[ index ] = 1e-8
+
         return_Array = computeReturns( reward_Array, gamme ).to( device )
         loss = computeLoss( log_Prob_Array, return_Array )
 
         optimiser.zero_grad()
 
-        if torch.isnan( loss ).any():
-            print( "DEBUG: NaN Detected" )
+        if torch.isnan( loss ).any() or torch.isinf( loss ).any():
+            print( "DEBUG: NaN/Inf loss detected - rolling back to last good checkpoint" )
+            policy.load_state_dict( best_Model_State )
+            optimiser.load_state_dict( best_Optim_State )
             continue
 
         loss.backward()
 
-        torch.nn.utils.clip_grad_norm_(policy.parameters(), max_norm=1.0)
+        grads_Are_Finite = all(
+            torch.isfinite( p.grad ).all()
+            for p in policy.parameters() if p.grad is not None
+        )
 
+        if not grads_Are_Finite:
+            print( "DEBUG: NaN/Inf gradient detected - rolling back to last good checkpoint" )
+            policy.load_state_dict( best_Model_State )
+            optimiser.load_state_dict( best_Optim_State )
+            continue
+
+        torch.nn.utils.clip_grad_norm_(policy.parameters(), max_norm=1.0)
         optimiser.step()
+
+        # Final safety net: verify the step itself didn't produce NaN weights
+        weights_Are_Finite = all( torch.isfinite( p ).all() for p in policy.parameters() )
+
+        if not weights_Are_Finite:
+            print( "DEBUG: NaN weights after step - rolling back to last good checkpoint" )
+            policy.load_state_dict( best_Model_State )
+            optimiser.load_state_dict( best_Optim_State )
+            continue
+
+        # This episode was clean - it becomes the new checkpoint
+        best_Model_State = copy.deepcopy( policy.state_dict() )
+        best_Optim_State = copy.deepcopy( optimiser.state_dict() )
 
         total_Reward = sum( reward_Array )
 
@@ -210,7 +244,12 @@ if __name__ == "__main__":
     print( "TRAINING" )
     print( "" )
 
-    trained_Policy, episode_Rewards = runTrainingLoop(number_Of_Episodes = 750)
+    device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" )
+    policy = onan.MasterNeuralNet().to( device )
+
+    # policy.load_state_dict(torch.load( "./model_save_2026-07-24 23:00:38.909668", weights_only=True))
+
+    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 600)
 
     onan.setGlobalVariable( "g_neural_Net_Instance", trained_Policy )
     onan.setGlobalVariable( "g_strategy_Selection_Enum", 0 )
