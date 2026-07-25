@@ -19,7 +19,7 @@ class Training_Environment():
     def _setInitialConditions( self ):
         # self.episode_Size = random.randint( 50, 500 )
         self.episode_Size = 250
-        self.episode_Start = random.randint( 0, self.number_Of_Timesteps - self.episode_Size - 50 )
+        self.episode_Start = random.randint( 0, self.number_Of_Timesteps - self.episode_Size - 250 )
 
         self.prices_Values = self.all_Prices_Values[ : ,self.episode_Start : self.episode_Start + self.episode_Size + 1 : 1 ]
 
@@ -124,6 +124,9 @@ def runEpisode( environement, policy, device, do_Print = False ):
         next_State, reward, done, log_Prob, today_PnL = environement.step( logits )
         daily_PnL_Array.append( today_PnL )
 
+        if( reward < 0.0 ):
+            reward *= 2
+
         log_Prob_Array.append( log_Prob )
         reward_Array.append( reward )
 
@@ -141,6 +144,7 @@ def runEpisode( environement, policy, device, do_Print = False ):
         print( "\tstd_PnL : " + str( std_PnL ) )
         print( "\tSR : " + str( sharpe_Ratio ) )
 
+    reward_Array = np.divide( np.asarray( reward_Array ), std_PnL + 5 )
     # reward_Array = np.divide( np.asarray( reward_Array ), np.sqrt( std_PnL ) + 5 )
     reward_Array = np.array( np.asarray( reward_Array ) / 1000 )
 
@@ -252,9 +256,9 @@ if __name__ == "__main__":
     device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" )
     policy = onan.MasterNeuralNet().to( device )
 
-    # policy.load_state_dict(torch.load( "./model_save_2026-07-24 23:00:38.909668", weights_only=True))
+    policy.load_state_dict(torch.load( "./model_save_25_i3", weights_only=True))
 
-    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 600)
+    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 300)
 
     onan.setGlobalVariable( "g_neural_Net_Instance", trained_Policy )
     onan.setGlobalVariable( "g_strategy_Selection_Enum", 0 )
