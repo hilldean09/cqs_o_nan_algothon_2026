@@ -39,6 +39,7 @@ class Training_Environment():
 
         output_State = onan.getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
         output_State = np.add( output_State, 1e-2 )
+        onan.resetNeuralNetOutputHistory()
 
         return output_State, 0, False
 
@@ -191,6 +192,7 @@ def runTrainingLoop( policy, number_Of_Episodes = 500, gamme = 0.99, lr = 1e-3 )
 
         for index in range( len( reward_Array ) ):
             if np.isnan( reward_Array[ index ] ):
+                print( "DEBUG: Zeroing NaN reward" )
                 reward_Array[ index ] = 1e-8
 
         return_Array = computeReturns( reward_Array, gamme ).to( device )
@@ -199,9 +201,10 @@ def runTrainingLoop( policy, number_Of_Episodes = 500, gamme = 0.99, lr = 1e-3 )
         optimiser.zero_grad()
 
         if torch.isnan( loss ).any() or torch.isinf( loss ).any():
-            print( "DEBUG: NaN/Inf loss detected - rolling back to last good checkpoint" )
+            print( "DEBUG: NaN/Inf loss detected (1) - rolling back to last good checkpoint" )
             policy.load_state_dict( best_Model_State )
             optimiser.load_state_dict( best_Optim_State )
+            onan.resetNeuralNetOutputHistory()
             continue
 
         loss.backward()
@@ -212,7 +215,7 @@ def runTrainingLoop( policy, number_Of_Episodes = 500, gamme = 0.99, lr = 1e-3 )
         )
 
         if not grads_Are_Finite:
-            print( "DEBUG: NaN/Inf gradient detected - rolling back to last good checkpoint" )
+            print( "DEBUG: NaN/Inf gradient detected (2) - rolling back to last good checkpoint" )
             policy.load_state_dict( best_Model_State )
             optimiser.load_state_dict( best_Optim_State )
             continue

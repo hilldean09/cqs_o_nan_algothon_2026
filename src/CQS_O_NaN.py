@@ -560,15 +560,19 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 
 g_nn_number_Of_Controlled_Strategies = 4
 g_nn_number_Of_Outputs = 2 * g_nn_number_Of_Controlled_Strategies
-g_nn_number_Of_Inputs = 1 + g_nn_number_Of_Outputs + 2 + 5 + 2 + 4
+g_nn_number_Of_Inputs = 1 + g_nn_number_Of_Controlled_Strategies + 3 + 5 + 3 + 4
 
-g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Outputs ) )
+g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Controlled_Strategies ) )
 
 def updateNeuralNetOutputHistory( outputs ):
     global g_nn_output_History_Buffer
 
     g_nn_output_History_Buffer = np.roll( g_nn_output_History_Buffer, 1 )
-    g_nn_output_History_Buffer[ 0 ] = outputs.cpu().detach().numpy()
+    g_nn_output_History_Buffer[ 0 ] = outputs
+
+def resetNeuralNetOutputHistory():
+    global g_nn_output_History_Buffer
+    g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Controlled_Strategies ) )
 
 
 # Input parameters
@@ -600,8 +604,13 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
        state.append( last_Output )
 
     # Market log mean returns (long and short)
-    state.append( getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size ) )
-    state.append( getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size ) )
+    market_Short_MM_Log_Returns = getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Short_Market_Moving_Mean_Log_Returns_Window_Size )
+    market_Long_MM_Log_Returns = getMarketMovingMeanLogReturns( prices_So_Far, timestep_Idx, g_nn_Long_Market_Moving_Mean_Log_Returns_Window_Size )
+    market_Short_Long_MM_Log_Returns_Ratio = market_Short_MM_Log_Returns / ( market_Long_MM_Log_Returns + 1e-8 )
+
+    state.append( market_Short_MM_Log_Returns )
+    state.append( market_Long_MM_Log_Returns )
+    state.append( market_Short_Long_MM_Log_Returns_Ratio )
 
     # Average correlation
     # state.append( getCorrelationMatrixAndMeanCorrelation( prices_So_Far, timestep_Idx, g_nn_Market_Correlation_Window_Size )[ 1 ] )
@@ -708,13 +717,14 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
 
     global g_nn_number_Of_Outputs
 
-    updateNeuralNetOutputHistory( logits )
 
     mean_Logits_Slice = logits[ 0 : int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : 1 ]
     log_Std_Logits_Slice = logits[ int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : g_nn_number_Of_Outputs : 1 ]
 
     multipliers, log_Prob = getNeuralNetMutlipliers( mean_Logits_Slice, log_Std_Logits_Slice )
     multipliers = multipliers.cpu().detach().numpy()
+
+    updateNeuralNetOutputHistory( multipliers )
 
     return_Position = np.zeros( number_Of_Instruments )
 
