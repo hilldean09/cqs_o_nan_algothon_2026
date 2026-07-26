@@ -54,6 +54,7 @@ feedback.
 
 
 ##### Code Start #####
+g_model_Weights_B64 = "O_NaN"
 
 g_number_Of_Instruments = 51
 
@@ -795,9 +796,21 @@ class MasterNeuralNet( nn.Module ):
         logits = self.linear_relu_stack( x )
         return logits
 
+def loadEmbeddedModelWeights( model ):
+    global g_model_Weights_B64
+
+    weights_Bytes = base64.b64decode( g_model_Weights_B64 )
+    buffer = io.BytesIO( weights_Bytes )
+
+    state_Dict = torch.load( buffer, map_location = g_torch_Device, weights_only = True )
+    model.load_state_dict( state_Dict )
+
+    return model
+
 # Instance
 g_neural_Net_Instance = MasterNeuralNet().to( g_torch_Device )
 
+# g_neural_Net_Instance = loadEmbeddedModelWeights( g_neural_Net_Instance )
 # g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_25_v2_i3", weights_only=True))
 
 
