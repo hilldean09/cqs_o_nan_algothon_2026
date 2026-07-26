@@ -607,7 +607,7 @@ g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_numbe
 def updateNeuralNetOutputHistory( outputs ):
     global g_nn_output_History_Buffer
 
-    g_nn_output_History_Buffer = np.roll( g_nn_output_History_Buffer, 1 )
+    g_nn_output_History_Buffer = np.roll( g_nn_output_History_Buffer, 1, axis = 0 )
     g_nn_output_History_Buffer[ 0 ] = outputs
 
 def resetNeuralNetOutputHistory():
@@ -622,7 +622,7 @@ def updatePositionHistory( prices_So_Far, new_Position_Original ):
 
     new_Position = np.clip( new_Position_Original, -position_Limits, position_Limits ).astype( int )
 
-    g_position_History_Buffer = np.roll( g_position_History_Buffer, 1 )
+    g_position_History_Buffer = np.roll( g_position_History_Buffer, 1, axis = 0 )
     g_position_History_Buffer[ 0 ] = new_Position
 
 def resetPositionHistory():
