@@ -576,8 +576,9 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 
 ##### Risk Management #####
 
-def getDrawdownScalar( threshold = -2000.0, floor = 0.25 ):
+def getDrawdownScalar( threshold = -6000.0, floor = 0.25 ):
     global g_previous_PnL_Buffer
+
 
     cumulative_Recent_PnL = np.sum( g_previous_PnL_Buffer )
 
@@ -586,6 +587,9 @@ def getDrawdownScalar( threshold = -2000.0, floor = 0.25 ):
 
     severity = min( abs( cumulative_Recent_PnL ) / abs( threshold ), 1.0 )
     scalar = 1.0 - severity * ( 1.0 - floor )
+
+    print( scalar )
+    print( g_previous_PnL_Buffer )
 
     return scalar
 
@@ -658,7 +662,7 @@ def updatePnLHistory( prices_So_Far ):
     g_previous_PnL_Buffer = np.roll( g_previous_PnL_Buffer, 1 )
     g_previous_PnL_Buffer[ 0 ] = today_PnL
 
-    dollar_Volumes = new_Position * np.abs( delta_Pos )
+    dollar_Volumes = current_Prices * np.abs( delta_Pos )
     g_comm = np.sum( dollar_Volumes * g_commission_Rate )
 
 
