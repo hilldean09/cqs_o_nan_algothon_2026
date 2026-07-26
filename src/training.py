@@ -132,7 +132,7 @@ def runEpisode( environement, policy, device, do_Print = False ):
         daily_PnL_Array.append( today_PnL )
 
         if( reward < 0.0 ):
-            reward *= 2
+            reward *= 3
 
         log_Prob_Array.append( log_Prob )
         reward_Array.append( reward )
@@ -150,7 +150,7 @@ def runEpisode( environement, policy, device, do_Print = False ):
         print( "\tstd_PnL : " + str( std_PnL ) )
         print( "\tSR : " + str( sharpe_Ratio ) )
 
-    # reward_Array = np.divide( np.asarray( reward_Array ), std_PnL + 5 )
+    reward_Array = np.divide( np.asarray( reward_Array ), std_PnL + 5 )
     # reward_Array = np.divide( np.asarray( reward_Array ), np.sqrt( std_PnL ) + 5 )
     reward_Array = np.array( np.asarray( reward_Array ) / 1000 )
 
@@ -268,7 +268,7 @@ if __name__ == "__main__":
     device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" )
     policy = onan.MasterNeuralNet().to( device )
 
-    # policy.load_state_dict(torch.load( "./model_save_25_i3", weights_only=True))
+    # policy.load_state_dict(torch.load( "./model_save_25_v2_i3", weights_only=True))
 
     trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 800)
 

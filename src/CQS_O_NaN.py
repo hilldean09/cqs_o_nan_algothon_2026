@@ -798,7 +798,7 @@ class MasterNeuralNet( nn.Module ):
 # Instance
 g_neural_Net_Instance = MasterNeuralNet().to( g_torch_Device )
 
-g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_25_v2_i3", weights_only=True))
+# g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_25_v2_i3", weights_only=True))
 
 
 # Neural Net Master Strategy #
