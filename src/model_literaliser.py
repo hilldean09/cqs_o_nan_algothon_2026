@@ -4,7 +4,7 @@ import torch
 import CQS_O_NaN as onan
 
 policy = onan.MasterNeuralNet()
-policy.load_state_dict( torch.load( "./model_save_25_i3", weights_only=True ) )
+policy.load_state_dict( torch.load( "./model_save_25_v2_i3", weights_only=True ) )
 
 buffer = io.BytesIO()
 torch.save( policy.state_dict(), buffer )
