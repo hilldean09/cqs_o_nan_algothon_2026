@@ -109,6 +109,7 @@ def getMyPosition( prcSoFar ):
 
     if( g_strategy_Selection_Enum == 2 ):
         return_Position = runPairsTradingStrategy( prcSoFar )
+        return_Position = return_Position + runAlgorithm1Strategy( prcSoFar )
 
     current_Position = return_Position
 
@@ -576,7 +577,7 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 
 ##### Risk Management #####
 
-def getDrawdownScalar( threshold = -6000.0, floor = 0.25 ):
+def getDrawdownScalar( threshold = -2000.0, floor = 0.25 ):
     global g_previous_PnL_Buffer
 
 
@@ -587,9 +588,6 @@ def getDrawdownScalar( threshold = -6000.0, floor = 0.25 ):
 
     severity = min( abs( cumulative_Recent_PnL ) / abs( threshold ), 1.0 )
     scalar = 1.0 - severity * ( 1.0 - floor )
-
-    print( scalar )
-    print( g_previous_PnL_Buffer )
 
     return scalar
 
@@ -833,8 +831,8 @@ def loadEmbeddedModelWeights( model ):
 # Instance
 g_neural_Net_Instance = MasterNeuralNet().to( g_torch_Device )
 
-g_neural_Net_Instance = loadEmbeddedModelWeights( g_neural_Net_Instance )
-# g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_2026-07-26 09:38:29.533008", weights_only=True))
+# g_neural_Net_Instance = loadEmbeddedModelWeights( g_neural_Net_Instance )
+g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_2026-07-26 16:38:14.233387", weights_only=True))
 
 # Neural Net Master Strategy #
 def runNeuralNetMasterStrategy( prices_So_Far, logits ):
