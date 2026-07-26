@@ -110,6 +110,8 @@ def getMyPosition( prcSoFar ):
     if( g_strategy_Selection_Enum == 2 ):
         return_Position = runPairsTradingStrategy( prcSoFar )
         return_Position = return_Position + runAlgorithm1Strategy( prcSoFar )
+        return_Position[ 0 ] *= 10
+        return_Position *= 10
 
     current_Position = return_Position
 
@@ -832,7 +834,7 @@ def loadEmbeddedModelWeights( model ):
 g_neural_Net_Instance = MasterNeuralNet().to( g_torch_Device )
 
 # g_neural_Net_Instance = loadEmbeddedModelWeights( g_neural_Net_Instance )
-g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_2026-07-26 16:38:14.233387", weights_only=True))
+g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_2026-07-26 16:19:47.715807", weights_only=True))
 
 # Neural Net Master Strategy #
 def runNeuralNetMasterStrategy( prices_So_Far, logits ):

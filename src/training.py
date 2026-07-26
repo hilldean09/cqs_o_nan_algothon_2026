@@ -101,9 +101,11 @@ class Training_Environment():
         if( self.timestep_Idx < self.episode_Size ):
             self._setTimestepPricesSoFar( self.timestep_Idx )
             output_State = onan.getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
+            output_State = addStateNoise( output_State )
             output_End = False
         else:
             output_State = onan.getNeuralNetInputs( self.prices_So_Far, self.timestep_Idx )
+            output_State = addStateNoise( output_State )
             output_End = True
 
         onan.updatePositionHistory( self.prices_So_Far, return_Position )
@@ -111,6 +113,38 @@ class Training_Environment():
 
         return output_State, reward, output_End, log_Prob, today_PnL
 
+##### State Noise Injection (Training Only) #####
+
+g_state_Noise_Scale = 0.02   # relative noise magnitude, ~2% of each feature's own value
+
+def addStateNoise( state, noise_Scale = g_state_Noise_Scale ):
+    """
+    Adds small, feature-scaled Gaussian noise to the neural net's input state,
+    for use during TRAINING ONLY - never at live/eval time.
+
+    Purpose: with only 750 days of one historical price path, training episodes
+    are heavily overlapping windows of the same underlying sequence rather than
+    genuinely independent market histories. Injecting a small amount of noise
+    into what the policy observes each episode discourages it from keying off
+    exact price levels or exact threshold crossings specific to this one
+    dataset, nudging it toward the more general regime structure instead.
+
+    Noise is scaled to each feature's own magnitude (rather than a single flat
+    value) since the state vector mixes very different scales - normalized
+    timestep (~0-1), pairs z-scores (can be several units), correlation
+    (-1 to 1), volatility (small positive floats), etc. A flat noise magnitude
+    would be meaningless for some features and overwhelming for others.
+    """
+    state_Array = np.asarray( state, dtype = float )
+
+    # small epsilon added to the scale so features that are currently exactly
+    # zero still receive a (small, fixed-magnitude) nudge rather than none at all
+    noise_Std = noise_Scale * ( np.abs( state_Array ) + 1e-3 )
+    noise = np.random.normal( loc = 0.0, scale = noise_Std, size = state_Array.shape )
+
+    noisy_State = state_Array + noise
+
+    return noisy_State
 
 
 def runEpisode( environement, policy, device, do_Print = False ):
@@ -270,7 +304,7 @@ if __name__ == "__main__":
 
     # policy.load_state_dict(torch.load( "./model_save_2026-07-26 16:19:13.365208", weights_only=True))
 
-    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 800)
+    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 1200)
 
     onan.setGlobalVariable( "g_neural_Net_Instance", trained_Policy )
     onan.setGlobalVariable( "g_strategy_Selection_Enum", 0 )
