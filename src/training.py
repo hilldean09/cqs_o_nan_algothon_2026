@@ -268,7 +268,7 @@ if __name__ == "__main__":
     device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" )
     policy = onan.MasterNeuralNet().to( device )
 
-    # policy.load_state_dict(torch.load( "./model_save_25_v2_i3", weights_only=True))
+    policy.load_state_dict(torch.load( "./model_save_2026-07-26 09:38:29.533008", weights_only=True))
 
     trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 800)
 

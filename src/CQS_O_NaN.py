@@ -4,6 +4,8 @@ from torch import nn
 from torch.distributions import Normal, Independent, TransformedDistribution
 from torch.distributions.transforms import TanhTransform, AffineTransform
 import random
+import base64
+import io
 
 """
 NOTE: Variable Name Prefixes - Dean
@@ -735,7 +737,7 @@ g_torch_Device = torch.accelerator.current_accelerator().type if torch.accelerat
 
 # NOTE: Rewritten from Claude
 # NOTE: Mean and log_Std are tensors
-def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 1.5 ):
+def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 0.75 ):
     # Clamping to prevent numerical
     # instability
     mean = torch.clamp( mean, min = -5.0, max = 5.0 )
