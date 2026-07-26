@@ -754,7 +754,7 @@ g_torch_Device = torch.accelerator.current_accelerator().type if torch.accelerat
 
 # NOTE: Rewritten from Claude
 # NOTE: Mean and log_Std are tensors
-def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 0.75 ):
+def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 1.5 ):
     # Clamping to prevent numerical
     # instability
     mean = torch.clamp( mean, min = -5.0, max = 5.0 )
@@ -829,8 +829,8 @@ def loadEmbeddedModelWeights( model ):
 # Instance
 g_neural_Net_Instance = MasterNeuralNet().to( g_torch_Device )
 
-# g_neural_Net_Instance = loadEmbeddedModelWeights( g_neural_Net_Instance )
-# g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_25_v2_i3", weights_only=True))
+g_neural_Net_Instance = loadEmbeddedModelWeights( g_neural_Net_Instance )
+# g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_2026-07-26 09:38:29.533008", weights_only=True))
 
 # Neural Net Master Strategy #
 def runNeuralNetMasterStrategy( prices_So_Far, logits ):
