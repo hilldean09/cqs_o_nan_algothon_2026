@@ -574,6 +574,23 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
     return positions
 
 
+##### Risk Management #####
+
+def getDrawdownScalar( threshold = -2000.0, floor = 0.25 ):
+    global g_previous_PnL_Buffer
+
+    cumulative_Recent_PnL = np.sum( g_previous_PnL_Buffer )
+
+    if cumulative_Recent_PnL >= 0.0:
+        return 1.0
+
+    severity = min( abs( cumulative_Recent_PnL ) / abs( threshold ), 1.0 )
+    scalar = 1.0 - severity * ( 1.0 - floor )
+
+    return scalar
+
+
+
 
 ##### Neural Net #####
 
@@ -815,7 +832,6 @@ g_neural_Net_Instance = MasterNeuralNet().to( g_torch_Device )
 # g_neural_Net_Instance = loadEmbeddedModelWeights( g_neural_Net_Instance )
 # g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_25_v2_i3", weights_only=True))
 
-
 # Neural Net Master Strategy #
 def runNeuralNetMasterStrategy( prices_So_Far, logits ):
     ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
@@ -844,6 +860,8 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
     return_Position = np.add( return_Position, multipliers[ 2 ] * runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ) )
     return_Position = np.add( return_Position, multipliers[ 3 ] * runPairsTradingStrategy( prices_So_Far ) )
     # print( return_Position )
+    
+    return_Position *= getDrawdownScalar()
     
     return return_Position, log_Prob
 
