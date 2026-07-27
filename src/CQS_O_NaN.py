@@ -81,7 +81,7 @@ g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_number_Of
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
 #   1 : moving average crossover
-g_strategy_Selection_Enum = 0
+g_strategy_Selection_Enum = 3
 
 # NOTE: We cannot change the argument variable name from
 # prcSoFar
@@ -90,6 +90,7 @@ def getMyPosition( prcSoFar ):
     global g_strategy_Selection_Enum
     global g_neural_Net_Instance
     global g_torch_Device
+    global g_tnn_instance
 
 
     ( number_Of_Instruments, number_Of_Timesteps ) = prcSoFar.shape
@@ -112,6 +113,16 @@ def getMyPosition( prcSoFar ):
         return_Position = return_Position + runAlgorithm1Strategy( prcSoFar )
         return_Position[ 0 ] *= 10
         return_Position *= 10
+
+    if( g_strategy_Selection_Enum == 3 ):
+        if( number_Of_Timesteps < 4 ):
+            return np.zeros( number_Of_Instruments )
+
+        state = getTraderNNInputs( prcSoFar )
+        state_tensor = torch.as_tensor( state, dtype=torch.float32, device = g_torch_Device )
+        logits = g_tnn_instance( state_tensor )
+        return_Position = runTraderNeuralNetStrategy( prcSoFar, logits )
+        return_Position = return_Position.astype( int )
 
     current_Position = return_Position
 
