@@ -809,7 +809,17 @@ class MasterNeuralNet( nn.Module ):
             nn.ReLU(),
             nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Inputs * 2 ) ),
             nn.ReLU(),
-            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Outputs * 2 ) ),
+            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Inputs * 2 ) ), # new
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Inputs * 2 ) ), # new
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Inputs * 2 ) ), # new
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Outputs * 2 ) ), 
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Outputs * 2 ), int( number_Of_Outputs * 2 ) ), # new
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Outputs * 2 ), int( number_Of_Outputs * 2 ) ), # new
             nn.ReLU(),
             nn.Linear( int( number_Of_Outputs * 2 ), number_Of_Outputs )
         )
@@ -834,7 +844,7 @@ def loadEmbeddedModelWeights( model ):
 g_neural_Net_Instance = MasterNeuralNet().to( g_torch_Device )
 
 # g_neural_Net_Instance = loadEmbeddedModelWeights( g_neural_Net_Instance )
-g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_2026-07-26 16:19:47.715807", weights_only=True))
+g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_2026-07-27 11:17:53.317790", weights_only=True))
 
 # Neural Net Master Strategy #
 def runNeuralNetMasterStrategy( prices_So_Far, logits ):
