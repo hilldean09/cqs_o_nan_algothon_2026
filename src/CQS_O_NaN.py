@@ -616,6 +616,7 @@ def resetNeuralNetOutputHistory():
 
 def updatePositionHistory( prices_So_Far, new_Position_Original ):
     global g_position_History_Buffer
+    global g_position_Limits
 
     current_Prices = getCurrentPrices( prices_So_Far )
     position_Limits = ( g_position_Limits / current_Prices ).astype( int )
@@ -869,6 +870,79 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
     
     return return_Position, log_Prob
 
+
+##### Trader Neural Net #####
+
+class TraderNeuralNet( nn.Module ):
+    def __init__( self ):
+        super().__init__()
+
+        global g_number_Of_Instruments
+
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential( 
+            nn.Linear( ( g_number_Of_Instruments, 3 ), ( g_number_Of_Instruments, 2 ) ),
+            nn.ReLU(),
+            nn.Linear( ( g_number_Of_Instruments, 2 ), g_number_Of_Instruments ),
+            nn.ReLU(),
+            nn.Linear( g_number_Of_Instruments, g_number_Of_Instruments ),
+            nn.ReLU(),
+            nn.Linear( g_number_Of_Instruments, ( g_number_Of_Instruments, 2 ) ),
+        )
+
+    def forward( self, x ):
+        # x = self.flatten( x )
+        logits = self.linear_relu_stack( x )
+        return logits
+
+def getTraderNNInputs( prices_So_Far ):
+    return prices_So_Far[ -2 : ]
+
+def getTraderNNPositions( mean, log_Std, scale = 1.0 ):
+    global g_position_Limits
+
+    current_Prices = getCurrentPrices( prices_So_Far )
+    position_Limits = ( g_position_Limits / current_Prices ).astype( int )
+
+    mean = torch.clamp( mean, min = -5.0, max = 5.0 )
+    log_Std = torch.clamp( log_Std, min = -5.0, max = 2.0 )
+    std = log_Std.exp()
+
+    # Building unbounded Gaussian 
+    # distribution
+    base_Distribution = Normal( loc = mean, scale = std )
+    # Ensure log_Prob is summed across
+    # strategies
+    base_Distribution = Independent( base_Distribution, reinterpreted_batch_ndims = 1 )
+
+    # Transforms numbers into values
+    # bounds between negative and positive
+    # bound
+    transform = [ TanhTransform( cache_size = 1 ), AffineTransform( loc = 0.0, scale = output_Bounds ) ]
+    squashed_Distribution = TransformedDistribution( base_Distribution, transform )
+
+    # Sampling multipliers
+    multipliers = squashed_Distribution.rsample()
+
+    log_Prob = squashed_Distribution.log_prob( multipliers )
+
+    log_Prob = torch.clamp( log_Prob, min = -10.0, max = 10.00 )
+    if torch.isnan( log_Prob ):
+        log_Prob = 0.0
+
+    return_Position = np.multiply( position_Limits, multipliers )
+
+    return return_Position, log_Prob
+
+
+g_tnn_instance = TraderNeuralNet().to( g_torch_Device )
+
+def runTraderNeuralNetStrategy( prices_So_Far, logits ):
+    mean = logits[ 0 ]
+    log_Std = logits[ 0 ]
+    return_Position, log_Prob = getTraderNNPositions( mean, log_Std )
+
+    return return_Position, log_Prob
 
 
 ##### Algorithm1 #####
