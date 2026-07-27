@@ -37,7 +37,7 @@ class Training_Environment():
         self._setInitialConditions()
         self._setTimestepPricesSoFar( self.timestep_Idx )
 
-        output_State = onan.getTraderNNInputs( self.prices_So_Far, self.timestep_Idx )
+        output_State = onan.getTraderNNInputs( self.prices_So_Far )
         output_State = np.add( output_State, 1e-2 )
         onan.resetNeuralNetOutputHistory()
         onan.resetPositionHistory()
@@ -90,7 +90,11 @@ class Training_Environment():
     def step( self, logits ):
         # returns a state vector corresponding to 
         # the neural net inputs
-        return_Position, log_Prob = onan.runTraderNeuralNetStrategy( self.prices_So_Far, logits )
+        if self.timestep_Idx >= 4:
+            return_Position, log_Prob = onan.runTraderNeuralNetStrategy( self.prices_So_Far, logits )
+        else:
+            return_Position = np.zeros( self.number_Of_Instruments )
+            log_Prob = 0.0
 
         return_Position = return_Position.astype( int )
 
@@ -99,11 +103,11 @@ class Training_Environment():
         self.timestep_Idx += 1
         if( self.timestep_Idx < self.episode_Size ):
             self._setTimestepPricesSoFar( self.timestep_Idx )
-            output_State = onan.getTraderNNInputs( self.prices_So_Far, self.timestep_Idx )
+            output_State = onan.getTraderNNInputs( self.prices_So_Far )
             output_State = addStateNoise( output_State )
             output_End = False
         else:
-            output_State = onan.getTraderNNInputs( self.prices_So_Far, self.timestep_Idx )
+            output_State = onan.getTraderNNInputs( self.prices_So_Far )
             output_State = addStateNoise( output_State )
             output_End = True
 
@@ -159,7 +163,10 @@ def runEpisode( environement, policy, device, do_Print = False ):
     while not done:
         state_tensor = torch.as_tensor( state, dtype=torch.float32, device = device )
 
-        logits = policy( state_tensor )
+        if environement.timestep_Idx >= 4:
+            logits = policy( state_tensor )
+        else: 
+            logits = np.zeros( 3 * environement.number_Of_Instruments )
 
         next_State, reward, done, log_Prob, today_PnL = environement.step( logits )
         daily_PnL_Array.append( today_PnL )

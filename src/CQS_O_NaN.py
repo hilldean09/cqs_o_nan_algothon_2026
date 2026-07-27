@@ -92,7 +92,6 @@ def getMyPosition( prcSoFar ):
     global g_torch_Device
     global g_tnn_instance
 
-
     ( number_Of_Instruments, number_Of_Timesteps ) = prcSoFar.shape
 
     if( number_Of_Timesteps < 2 ):
@@ -121,7 +120,7 @@ def getMyPosition( prcSoFar ):
         state = getTraderNNInputs( prcSoFar )
         state_tensor = torch.as_tensor( state, dtype=torch.float32, device = g_torch_Device )
         logits = g_tnn_instance( state_tensor )
-        return_Position = runTraderNeuralNetStrategy( prcSoFar, logits )
+        return_Position, _ = runTraderNeuralNetStrategy( prcSoFar, logits )
         return_Position = return_Position.astype( int )
 
     current_Position = return_Position
@@ -892,13 +891,13 @@ class TraderNeuralNet( nn.Module ):
 
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential( 
-            nn.Linear( ( g_number_Of_Instruments, 3 ), ( g_number_Of_Instruments, 2 ) ),
+            nn.Linear( g_number_Of_Instruments * 3, g_number_Of_Instruments * 2 ),
             nn.ReLU(),
-            nn.Linear( ( g_number_Of_Instruments, 2 ), g_number_Of_Instruments ),
+            nn.Linear( g_number_Of_Instruments * 2, g_number_Of_Instruments ),
             nn.ReLU(),
             nn.Linear( g_number_Of_Instruments, g_number_Of_Instruments ),
             nn.ReLU(),
-            nn.Linear( g_number_Of_Instruments, ( g_number_Of_Instruments, 2 ) ),
+            nn.Linear( g_number_Of_Instruments, g_number_Of_Instruments * 2 ),
         )
 
     def forward( self, x ):
@@ -907,9 +906,9 @@ class TraderNeuralNet( nn.Module ):
         return logits
 
 def getTraderNNInputs( prices_So_Far ):
-    return prices_So_Far[ -2 : ]
+    return ( prices_So_Far[ :, -3 : ].flatten() / 100 )
 
-def getTraderNNPositions( mean, log_Std, scale = 1.0 ):
+def getTraderNNPositions( prices_So_Far, mean, log_Std, output_Bounds = 1.0 ):
     global g_position_Limits
 
     current_Prices = getCurrentPrices( prices_So_Far )
@@ -938,8 +937,9 @@ def getTraderNNPositions( mean, log_Std, scale = 1.0 ):
     log_Prob = squashed_Distribution.log_prob( multipliers )
 
     log_Prob = torch.clamp( log_Prob, min = -10.0, max = 10.00 )
-    if torch.isnan( log_Prob ):
-        log_Prob = 0.0
+    log_Prob = torch.nan_to_num( log_Prob, nan = 0.0 )
+
+    multipliers = multipliers.cpu().detach().numpy()
 
     return_Position = np.multiply( position_Limits, multipliers )
 
@@ -949,9 +949,11 @@ def getTraderNNPositions( mean, log_Std, scale = 1.0 ):
 g_tnn_instance = TraderNeuralNet().to( g_torch_Device )
 
 def runTraderNeuralNetStrategy( prices_So_Far, logits ):
-    mean = logits[ 0 ]
-    log_Std = logits[ 0 ]
-    return_Position, log_Prob = getTraderNNPositions( mean, log_Std )
+    global g_number_Of_Instruments
+    mean_Logits_Slice = logits[ 0 : int( ( 2 * g_number_Of_Instruments + 1 ) / 2  ) : 1 ]
+    log_Std_Logits_Slice = logits[ int( ( 2 * g_number_Of_Instruments + 1 ) / 2  ) : 2 * g_number_Of_Instruments : 1 ]
+
+    return_Position, log_Prob = getTraderNNPositions( prices_So_Far, mean_Logits_Slice, log_Std_Logits_Slice )
 
     return return_Position, log_Prob
 
