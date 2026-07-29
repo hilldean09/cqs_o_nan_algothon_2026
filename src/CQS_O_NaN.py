@@ -113,6 +113,13 @@ def getMyPosition( prcSoFar ):
         return_Position[ 0 ] *= 10
         return_Position *= 10
 
+    if( g_strategy_Selection_Enum == 3 ):
+        return_Position = 1.0 * runPairsTradingStrategy( prcSoFar )
+        return_Position += 1.0 * runPairsMeanReversionStrategy( prcSoFar )
+        return_Position += 1.0 * runAlgorithm1WidenedStrategy( prcSoFar )
+        return_Position[ 0 ] *= 10
+        return_Position *= 10
+
     current_Position = return_Position
 
     updatePositionHistory( prcSoFar, current_Position )
@@ -881,6 +888,78 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
 
 
 
+##### Algorithm1 (widened selection variant) #####
+
+a1v2_nInst = 51
+a1v2_dlrLimit = np.full( a1v2_nInst, 10_000.0 )
+a1v2_dlrLimit[ 0 ] = 100_000.0
+a1v2_EPS = 1e-9
+
+a1v2_MIN_HIST = 1
+a1v2_ENTER_K = 18      # widened from 12 - trades PnL-per-position for total exposure/PnL
+a1v2_EXIT_K = 25        # widened from 17, same proportional gap to preserve hysteresis behaviour
+
+_a1v2_heldSet = set()
+
+def _a1v2_leadlag_signal( rets_hist ):
+    X = rets_hist[ :, :-1 ].T
+    Y = rets_hist[ :, 1: ].T
+    xmu, xsd = X.mean( 0 ), X.std( 0 ) + a1v2_EPS
+    ymu, ysd = Y.mean( 0 ), Y.std( 0 ) + a1v2_EPS
+    Xs = ( X - xmu ) / xsd
+    Ys = ( Y - ymu ) / ysd
+    LL = ( Xs.T @ Ys ) / Xs.shape[ 0 ]
+    np.fill_diagonal( LL, 0.0 )
+    last = rets_hist[ :, -1 ]
+    last_std = ( last - xmu ) / xsd
+    return last_std @ LL
+
+def _a1v2_regime_scale( rets_hist ):
+    mkt = rets_hist.mean( axis = 0 )
+    if mkt.shape[ 0 ] < 60:
+        return 1.0
+    short_vol = mkt[ -10: ].std() + a1v2_EPS
+    long_vol = mkt[ -60: ].std() + a1v2_EPS
+    ratio = short_vol / long_vol
+    return float( np.clip( 1.15 - 0.35 * max( ratio - 1.0, 0.0 ), 0.6, 1.15 ) )
+
+def runAlgorithm1WidenedStrategy( prcSoFar ):
+    global _a1v2_heldSet
+    nins, nt = prcSoFar.shape
+
+    if nt < a1v2_MIN_HIST + 1:
+        return np.zeros( nins, dtype = int )
+
+    logp = np.log( prcSoFar )
+    rets = np.diff( logp, axis = 1 )
+
+    sig = _a1v2_leadlag_signal( rets )
+    scale = _a1v2_regime_scale( rets )
+
+    order = np.argsort( -np.abs( sig ) )
+    ranks = np.empty( nins, dtype = int )
+    ranks[ order ] = np.arange( nins )
+
+    newHeld = set()
+    for i in range( nins ):
+        threshold = a1v2_EXIT_K if i in _a1v2_heldSet else a1v2_ENTER_K
+        if ranks[ i ] < threshold:
+            newHeld.add( i )
+    _a1v2_heldSet = newHeld
+
+    conf = np.zeros( nins )
+    for i in newHeld:
+        conf[ i ] = np.sign( sig[ i ] ) * scale
+
+    curPrices = prcSoFar[ :, -1 ]
+    targetDollars = conf * a1v2_dlrLimit
+    targetShares = targetDollars / curPrices
+
+    posLimitShares = ( a1v2_dlrLimit / curPrices ).astype( int )
+    newPos = np.clip( targetShares, -posLimitShares, posLimitShares )
+    return newPos.astype( int )
+
+
 ##### Algorithm1 #####
 
 """ 
@@ -1176,6 +1255,86 @@ def runPairsTradingStrategy( prices_So_Far ):
             dollars_A = current_Direction * g_pairs_Trading_Dollars_Per_Leg
             dollars_B = -current_Direction * beta_Value * g_pairs_Trading_Dollars_Per_Leg
             dollars_B = np.clip( dollars_B, -g_pairs_Trading_Dollars_Per_Leg, g_pairs_Trading_Dollars_Per_Leg )
+
+            positions[ asset_A_Idx ] += dollars_A / prices_So_Far[ asset_A_Idx ][ -1 ]
+            positions[ asset_B_Idx ] += dollars_B / prices_So_Far[ asset_B_Idx ][ -1 ]
+
+    return positions
+
+##### Pairs Mean Reversion Strategy #####
+
+g_pmr_Pairs_List = [ ( 49, 50 ), ( 36, 41 ), ( 31, 43 ), ( 33, 46 ) ]   # MHRM-EAFC, FWWG-BLBT, ACIX-ITPA, MTNS-ILVX
+
+g_pmr_Beta_Window = 120
+g_pmr_Z_Window = 60
+g_pmr_Entry_Z = 2.0
+g_pmr_Exit_Z = 0.5
+g_pmr_Dollars_Per_Leg = 8000.0
+
+g_pmr_Min_History = 5   # absolute floor - need at least a handful of points before a beta/z-score means anything
+
+g_pmr_State = { pair: 0 for pair in g_pmr_Pairs_List }
+
+def getPairMeanReversionHedgeRatio( prices_So_Far, asset_A_Idx, asset_B_Idx, window_Size ):
+    log_Prices = np.log( prices_So_Far )
+
+    # shrink to whatever history actually exists rather than refusing to run
+    available = log_Prices.shape[ 1 ]
+    effective_Window = min( window_Size, available )
+
+    log_A_Window = log_Prices[ asset_A_Idx ][ -effective_Window: ]
+    log_B_Window = log_Prices[ asset_B_Idx ][ -effective_Window: ]
+
+    beta_Value, alpha_Value = np.polyfit( log_B_Window, log_A_Window, 1 )
+    return beta_Value
+
+def getPairMeanReversionZScore( prices_So_Far, asset_A_Idx, asset_B_Idx, beta_Value, z_Window_Size ):
+    log_Prices = np.log( prices_So_Far )
+    spread_Series = log_Prices[ asset_A_Idx ] - beta_Value * log_Prices[ asset_B_Idx ]
+
+    available = spread_Series.shape[ 0 ]
+    effective_Window = min( z_Window_Size, available )
+
+    z_Window = spread_Series[ -effective_Window: ]
+    spread_Mean = np.mean( z_Window )
+    spread_Std = np.std( z_Window ) + 1e-9
+
+    current_Spread = spread_Series[ -1 ]
+    z_Score = ( current_Spread - spread_Mean ) / spread_Std
+
+    return z_Score
+
+def runPairsMeanReversionStrategy( prices_So_Far ):
+    global g_pmr_State
+
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    positions = np.zeros( number_Of_Instruments )
+
+    if number_Of_Timesteps < g_pmr_Min_History:
+        return positions
+
+    for ( asset_A_Idx, asset_B_Idx ) in g_pmr_Pairs_List:
+
+        beta_Value = getPairMeanReversionHedgeRatio( prices_So_Far, asset_A_Idx, asset_B_Idx, g_pmr_Beta_Window )
+        z_Score = getPairMeanReversionZScore( prices_So_Far, asset_A_Idx, asset_B_Idx, beta_Value, g_pmr_Z_Window )
+
+        current_Direction = g_pmr_State[ ( asset_A_Idx, asset_B_Idx ) ]
+
+        if current_Direction == 0:
+            if z_Score > g_pmr_Entry_Z:
+                current_Direction = -1
+            elif z_Score < -g_pmr_Entry_Z:
+                current_Direction = 1
+        else:
+            if abs( z_Score ) < g_pmr_Exit_Z:
+                current_Direction = 0
+
+        g_pmr_State[ ( asset_A_Idx, asset_B_Idx ) ] = current_Direction
+
+        if current_Direction != 0:
+            dollars_A = current_Direction * g_pmr_Dollars_Per_Leg
+            dollars_B = -current_Direction * beta_Value * g_pmr_Dollars_Per_Leg
+            dollars_B = np.clip( dollars_B, -g_pmr_Dollars_Per_Leg, g_pmr_Dollars_Per_Leg )
 
             positions[ asset_A_Idx ] += dollars_A / prices_So_Far[ asset_A_Idx ][ -1 ]
             positions[ asset_B_Idx ] += dollars_B / prices_So_Far[ asset_B_Idx ][ -1 ]
