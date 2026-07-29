@@ -71,8 +71,8 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
 if __name__ == "__main__":
     number_Of_Parameters = 2
 
-    parameter_Name_List = [ "g_pmr_Beta_Window", "g_pmr_Z_Window", "g_pmr_Entry_Z", "g_pmr_Exit_Z" ]
-    parameter_Value_Range_List = [ range( 30, 150, 10 ), range( 10, 120, 10 ), np.arange( 1.0, 3.0, 0.2 ), np.arange( 0.2, 1.2, 0.1 ) ]
+    parameter_Name_List = [ "_VOL_WINDOW", "_PERFORMANCE_WINDOW", "_MIN_INFORMATION_RATIO" ]
+    parameter_Value_Range_List = [ range( 30, 90, 10 ), range( 10, 60, 10 ), np.arange( 0.1, 0.9, 0.05 ) ]
 
     optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List, visualise = False )
 

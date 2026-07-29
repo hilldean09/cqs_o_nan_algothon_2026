@@ -76,7 +76,7 @@ g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_number_Of
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
 #   1 : moving average crossover
-g_strategy_Selection_Enum = 3
+g_strategy_Selection_Enum = 4
 
 g_smac_weight = 0.0
 g_spt_weight = 0.2
@@ -122,7 +122,7 @@ def getMyPosition( prcSoFar ):
         return_Position *= getDrawdownScalar()
 
     if( g_strategy_Selection_Enum == 4 ):
-        return_Position = runPairsMeanReversionStrategy( prcSoFar )
+        return_Position = runOnlineFactorRegimeEnsembleStrategy( prcSoFar )
         return_Position[ 0 ] *= 10
 
     current_Position = return_Position
@@ -984,7 +984,7 @@ def _cross_sectional_factor(returns):
     n_days, n_inst = returns.shape
     factor = np.empty(n_days)
     for day in range(n_days):
-        recent = returns[max(0, day - _VOL_WINDOW + 1) : day + 1]
+        recent = returns[int( max(0, day - _VOL_WINDOW + 1) ) : ( day + 1 )]
         scale = np.std(recent, axis=0) + _EPS
         factor[day] = np.mean(returns[day] / scale)
     return factor
@@ -1032,8 +1032,8 @@ def _choose_direction(returns, dollar_limits):
     full_long_pnl = np.sum(dollar_limits * np.expm1(returns), axis=1)
 
     # Forecast k was made after return k and earns the known return k+1.
-    known_end = n_days - 1  # exclusive expert index; ends at n_days - 2
-    known_start = max(0, known_end - _PERFORMANCE_WINDOW)
+    known_end = int( n_days - 1 )  # exclusive expert index; ends at n_days - 2
+    known_start = int( max(0, known_end - _PERFORMANCE_WINDOW) )
     pnl = experts[:, known_start:known_end] * full_long_pnl[known_start + 1 : known_end + 1]
     if pnl.shape[1] < 10:
         return 0.0
@@ -1230,5 +1230,5 @@ def runPairsMeanReversionStrategy( prices_So_Far ):
 
 ##### External #####
 
-#def setGlobalVariable( name, value ):
-#    globals()[ name ] = value
+def setGlobalVariable( name, value ):
+    globals()[ name ] = value
