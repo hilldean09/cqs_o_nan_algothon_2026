@@ -81,14 +81,14 @@ g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_number_Of
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
 #   1 : moving average crossover
-g_strategy_Selection_Enum = 0
+g_strategy_Selection_Enum = 4
 
-g_smac_weight = 1.0
-g_spt_weight = 1.0
-g_spmr_weight = 1.0
-g_sal1_weight = 1.0
-g_swal1_weight = 1.0
-g_sofe_weight = 1.0
+g_smac_weight = 0.0
+g_spt_weight = 0.2
+g_spmr_weight = 0.1
+g_sal1_weight = 0.2
+g_swal1_weight = 0.2
+g_sofe_weight = 0.3
 
 # NOTE: We cannot change the argument variable name from
 # prcSoFar
@@ -130,6 +130,8 @@ def getMyPosition( prcSoFar ):
         return_Position += g_sofe_weight  * np.clip( runOnlineFactorRegimeEnsembleStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
         return_Position[ 0 ] *= 10
         return_Position *= 10
+
+        return_Position *= getDrawdownScalar()
 
     if( g_strategy_Selection_Enum == 4 ):
         return_Position = runPairsMeanReversionStrategy( prcSoFar )
@@ -601,9 +603,9 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
 
 ##### Risk Management #####
 
-def getDrawdownScalar( threshold = -2000.0, floor = 0.25 ):
+# -6000 and 0.5 works weel for collection strat
+def getDrawdownScalar( threshold = -6000.0, floor = 0.5 ):
     global g_previous_PnL_Buffer
-
 
     cumulative_Recent_PnL = np.sum( g_previous_PnL_Buffer )
 
@@ -613,6 +615,7 @@ def getDrawdownScalar( threshold = -2000.0, floor = 0.25 ):
     severity = min( abs( cumulative_Recent_PnL ) / abs( threshold ), 1.0 )
     scalar = 1.0 - severity * ( 1.0 - floor )
 
+    print( scalar )
     return scalar
 
 
@@ -869,7 +872,7 @@ def loadEmbeddedModelWeights( model ):
 g_neural_Net_Instance = MasterNeuralNet().to( g_torch_Device )
 
 # g_neural_Net_Instance = loadEmbeddedModelWeights( g_neural_Net_Instance )
-g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_2026-07-27 11:17:53.317790", weights_only=True))
+g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_current_best_v2", weights_only=True))
 
 # Neural Net Master Strategy #
 def runNeuralNetMasterStrategy( prices_So_Far, logits ):
@@ -879,7 +882,7 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
     global g_nn_number_Of_Outputs
     global g_position_Limits
 
-    current_Prices = getCurrentPrices( prcSoFar )
+    current_Prices = getCurrentPrices( prices_So_Far )
     position_Limits = ( g_position_Limits / current_Prices ).astype( int )
 
     mean_Logits_Slice = logits[ 0 : int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : 1 ]
@@ -894,13 +897,12 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
 
     return_Position = np.zeros( number_Of_Instruments )
 
-    # Moving crossover strategy
-    return_Position = np.add( return_Position, multipliers[ 0 ] * np.clip( runPairsMeanReversionStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )  )
+    return_Position = np.add( return_Position, multipliers[ 0 ] * np.clip( runPairsMeanReversionStrategy( prices_So_Far ), -position_Limits, position_Limits ).astype( int )  )
     if( number_Of_Timesteps > 2 ):
-        return_Position = np.add( return_Position, multipliers[ 1 ] * np.clip( runAlgorithm1Strategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) )
-    return_Position = np.add( return_Position, multipliers[ 2 ] * np.clip( runOnlineFactorRegimeEnsembleStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) )
-    return_Position = np.add( return_Position, multipliers[ 3 ] * np.clip( runPairsTradingStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) )
-    return_Position = np.add( return_Position, multipliers[ 4 ] * np.clip( runAlgorithm1WidenedStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) )
+        return_Position = np.add( return_Position, multipliers[ 1 ] * np.clip( runAlgorithm1Strategy( prices_So_Far ), -position_Limits, position_Limits ).astype( int ) )
+    return_Position = np.add( return_Position, multipliers[ 2 ] * np.clip( runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ), -position_Limits, position_Limits ).astype( int ) )
+    return_Position = np.add( return_Position, multipliers[ 3 ] * np.clip( runPairsTradingStrategy( prices_So_Far ), -position_Limits, position_Limits ).astype( int ) )
+    return_Position = np.add( return_Position, multipliers[ 4 ] * np.clip( runAlgorithm1WidenedStrategy( prices_So_Far ), -position_Limits, position_Limits ).astype( int ) )
     
     # return_Position *= getDrawdownScalar()
     
@@ -1285,10 +1287,10 @@ def runPairsTradingStrategy( prices_So_Far ):
 
 g_pmr_Pairs_List = [ ( 49, 50 ), ( 36, 41 ), ( 31, 43 ), ( 33, 46 ) ]   # MHRM-EAFC, FWWG-BLBT, ACIX-ITPA, MTNS-ILVX
 
-g_pmr_Beta_Window = 120
-g_pmr_Z_Window = 60
-g_pmr_Entry_Z = 2.0
-g_pmr_Exit_Z = 0.5
+g_pmr_Beta_Window = 100
+g_pmr_Z_Window = 100
+g_pmr_Entry_Z = 1.0
+g_pmr_Exit_Z = 0.8
 g_pmr_Dollars_Per_Leg = 8000.0
 
 g_pmr_Min_History = 5   # absolute floor - need at least a handful of points before a beta/z-score means anything
