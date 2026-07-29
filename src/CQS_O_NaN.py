@@ -81,7 +81,7 @@ g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_number_Of
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
 #   1 : moving average crossover
-g_strategy_Selection_Enum = 3
+g_strategy_Selection_Enum = 0
 
 g_smac_weight = 1.0
 g_spt_weight = 1.0
@@ -620,7 +620,7 @@ def getDrawdownScalar( threshold = -2000.0, floor = 0.25 ):
 
 ##### Neural Net #####
 
-g_nn_number_Of_Controlled_Strategies = 4
+g_nn_number_Of_Controlled_Strategies = 5
 g_nn_number_Of_Outputs = 2 * g_nn_number_Of_Controlled_Strategies
 g_nn_number_Of_Inputs = 1 + g_nn_number_Of_Controlled_Strategies + 3 + 5 + 3 + 4 + 2
 
@@ -809,6 +809,9 @@ def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 1.5 ):
     if torch.isnan( log_Prob ):
         log_Prob = 0.0
 
+    multipliers = multipliers.cpu().detach().numpy()
+    multipliers = [ max( multipliers[ i ], 0.0 ) for i in range( len( multipliers ) ) ]
+
     return multipliers, log_Prob
 
 
@@ -874,6 +877,10 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
     timestep_Idx = number_Of_Timesteps - 1
 
     global g_nn_number_Of_Outputs
+    global g_position_Limits
+
+    current_Prices = getCurrentPrices( prcSoFar )
+    position_Limits = ( g_position_Limits / current_Prices ).astype( int )
 
     mean_Logits_Slice = logits[ 0 : int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : 1 ]
     log_Std_Logits_Slice = logits[ int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : g_nn_number_Of_Outputs : 1 ]
@@ -883,21 +890,19 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
     if random.randint( 0, 100 ) >= 99:
         print( multipliers )
 
-    multipliers = multipliers.cpu().detach().numpy()
-
     updateNeuralNetOutputHistory( multipliers )
 
     return_Position = np.zeros( number_Of_Instruments )
 
     # Moving crossover strategy
-    return_Position = np.add( return_Position, multipliers[ 0 ] * runMovingAverageCrossoverStrategy( prices_So_Far ) )
+    return_Position = np.add( return_Position, multipliers[ 0 ] * np.clip( runPairsMeanReversionStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )  )
     if( number_Of_Timesteps > 2 ):
-        return_Position = np.add( return_Position, multipliers[ 1 ] * runAlgorithm1Strategy( prices_So_Far ) )
-    return_Position = np.add( return_Position, multipliers[ 2 ] * runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ) )
-    return_Position = np.add( return_Position, multipliers[ 3 ] * runPairsTradingStrategy( prices_So_Far ) )
-    # print( return_Position )
+        return_Position = np.add( return_Position, multipliers[ 1 ] * np.clip( runAlgorithm1Strategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) )
+    return_Position = np.add( return_Position, multipliers[ 2 ] * np.clip( runOnlineFactorRegimeEnsembleStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) )
+    return_Position = np.add( return_Position, multipliers[ 3 ] * np.clip( runPairsTradingStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) )
+    return_Position = np.add( return_Position, multipliers[ 4 ] * np.clip( runAlgorithm1WidenedStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) )
     
-    return_Position *= getDrawdownScalar()
+    # return_Position *= getDrawdownScalar()
     
     return return_Position, log_Prob
 
