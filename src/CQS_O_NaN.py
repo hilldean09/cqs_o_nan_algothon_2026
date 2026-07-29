@@ -6,6 +6,7 @@ from torch.distributions.transforms import TanhTransform, AffineTransform
 import random
 import base64
 import io
+import os
 
 """
 NOTE: Variable Name Prefixes - Dean
@@ -577,6 +578,113 @@ def runMovingAverageCrossoverStrategy( prices_So_Far ):
     return positions
 
 
+##### Advanced, Diversifying Strategies #####
+
+# Each sleeve is a pure function of the supplied price history: there is no
+# hidden state to leak between training episodes, walk-forward folds, or live
+# evaluation.  The horizons are broad and conventional, and are deliberately
+# not selected per instrument.
+g_ranked_Reversion_Window = 60
+g_ranked_Reversion_Top_K = 20
+g_pooled_AR_Window = 120
+g_pooled_AR_Signal_Window = 10
+g_regularised_Lead_Lag_Window = 120
+g_regularised_Lead_Lag_Top_K = 10
+
+
+def _getLogReturns( prices_So_Far ):
+    """Return finite log returns with observations along the second axis."""
+    safe_Prices = np.maximum( np.asarray( prices_So_Far, dtype = float ), 1e-12 )
+    return np.diff( np.log( safe_Prices ), axis = 1 )
+
+
+def _getPositionsFromLimitFractions( limit_Fractions, prices_So_Far ):
+    """Convert bounded dollar-limit fractions to desired share holdings."""
+    current_Prices = np.maximum( prices_So_Far[ : , -1 ], 1e-12 )
+    fractions = np.nan_to_num( np.clip( limit_Fractions, -1.0, 1.0 ) )
+    return fractions * g_position_Limits / current_Prices
+
+
+def runRankedLongHorizonReversionStrategy( prices_So_Far ):
+    """Trade the largest 60-day winners and losers against their moves.
+
+    This is intentionally more selective than a full-universe reversal: only
+    the twenty largest positive and negative moves receive exposure.  Ranking
+    avoids fitting asset-specific thresholds, ignores middling noisy moves,
+    and limits turnover by requiring a name to become genuinely extreme before
+    it can enter the sleeve.
+    """
+    number_Of_Instruments, number_Of_Timesteps = prices_So_Far.shape
+    if number_Of_Timesteps < g_ranked_Reversion_Window + 1:
+        return np.zeros( number_Of_Instruments )
+
+    cumulative_Return = np.log( prices_So_Far[ : , -1 ] / prices_So_Far[ : , -g_ranked_Reversion_Window - 1 ] )
+    ranked_Assets = np.argsort( cumulative_Return )
+    limit_Fractions = np.zeros( number_Of_Instruments )
+    limit_Fractions[ ranked_Assets[ : g_ranked_Reversion_Top_K ] ] = 1.0
+    limit_Fractions[ ranked_Assets[ -g_ranked_Reversion_Top_K : ] ] = -1.0
+    return _getPositionsFromLimitFractions( limit_Fractions, prices_So_Far )
+
+
+def runPooledAutocorrelationStrategy( prices_So_Far ):
+    """Use one pooled autocorrelation estimate for the entire universe.
+
+    A single pooled coefficient decides whether a 10-day move should be
+    followed (momentum) or faded (reversal).  Pooling 51 assets over 120 days
+    has far lower estimation error than fitting one autoregression per asset;
+    it allows regime adaptation without 51 noisy parameters.
+    """
+    number_Of_Instruments, number_Of_Timesteps = prices_So_Far.shape
+    if number_Of_Timesteps < g_pooled_AR_Window + 1:
+        return np.zeros( number_Of_Instruments )
+
+    returns = _getLogReturns( prices_So_Far )[ : , -g_pooled_AR_Window : ]
+    previous_Returns = returns[ : , :-1 ]
+    following_Returns = returns[ : , 1 : ]
+    # The epsilon only handles a degenerate all-zero return history; the
+    # coefficient remains a global, out-of-sample-testable regime estimate.
+    autocorrelation = np.sum( previous_Returns * following_Returns ) / ( np.sum( previous_Returns ** 2 ) + 1e-8 )
+    cumulative_Return = np.sum( returns[ : , -g_pooled_AR_Signal_Window : ], axis = 1 )
+    return _getPositionsFromLimitFractions( np.sign( autocorrelation ) * np.sign( cumulative_Return ), prices_So_Far )
+
+
+def runRegularisedLeadLagStrategy( prices_So_Far ):
+    """Forecast only the strongest cross-asset lead--lag relationships.
+
+    This is intentionally more conservative than the existing unregularised
+    full-history lead--lag sleeve: it uses a fixed recent window, shrinks the
+    51 by 51 regression by roughly half, and expresses only its ten largest
+    forecasts.  Those constraints make it much less likely to fit transient
+    correlations in an anonymous universe.
+    """
+    number_Of_Instruments, number_Of_Timesteps = prices_So_Far.shape
+    if number_Of_Timesteps < g_regularised_Lead_Lag_Window + 1:
+        return np.zeros( number_Of_Instruments )
+
+    returns = _getLogReturns( prices_So_Far )[ : , -g_regularised_Lead_Lag_Window : ].T
+    previous_Returns = returns[ : -1 ]
+    following_Returns = returns[ 1 : ]
+    previous_Mean = np.mean( previous_Returns, axis = 0 )
+    previous_Std = np.std( previous_Returns, axis = 0 ) + 1e-12
+    following_Mean = np.mean( following_Returns, axis = 0 )
+    following_Std = np.std( following_Returns, axis = 0 ) + 1e-12
+    standardised_Previous = ( previous_Returns - previous_Mean ) / previous_Std
+    standardised_Following = ( following_Returns - following_Mean ) / following_Std
+
+    # With 119 observations and 51 predictors, ridge = 2 * n_instruments is
+    # a fixed 50%-scale shrinkage prior, not an instrument-specific fit.
+    ridge = 2.0 * number_Of_Instruments
+    gram_Matrix = standardised_Previous.T @ standardised_Previous + ridge * np.eye( number_Of_Instruments )
+    coefficients = np.linalg.solve( gram_Matrix, standardised_Previous.T @ standardised_Following )
+    latest_Return = ( returns[ -1 ] - previous_Mean ) / previous_Std
+    forecast = latest_Return @ coefficients
+
+    limit_Fractions = np.zeros( number_Of_Instruments )
+    selected_Assets = np.argsort( np.abs( forecast ) )[ -g_regularised_Lead_Lag_Top_K : ]
+    limit_Fractions[ selected_Assets ] = np.sign( forecast[ selected_Assets ] )
+    return _getPositionsFromLimitFractions( limit_Fractions, prices_So_Far )
+
+
 ##### Risk Management #####
 
 def getDrawdownScalar( threshold = -2000.0, floor = 0.25 ):
@@ -598,9 +706,15 @@ def getDrawdownScalar( threshold = -2000.0, floor = 0.25 ):
 
 ##### Neural Net #####
 
-g_nn_number_Of_Controlled_Strategies = 4
+g_nn_number_Of_Legacy_Controlled_Strategies = 4
+g_nn_number_Of_Controlled_Strategies = 7
 g_nn_number_Of_Outputs = 2 * g_nn_number_Of_Controlled_Strategies
-g_nn_number_Of_Inputs = 1 + g_nn_number_Of_Controlled_Strategies + 3 + 5 + 3 + 4 + 2
+# Retain the old 22-feature trunk so the current trained model can be used as
+# a warm start.  It still controls all seven strategy sleeves through the
+# expanded output head; the three new sleeves begin with near-zero allocation
+# and are learnt during subsequent training.
+g_nn_number_Of_Inputs = 1 + g_nn_number_Of_Legacy_Controlled_Strategies + 3 + 5 + 3 + 4 + 2
+g_nn_legacy_number_Of_Outputs = 2 * g_nn_number_Of_Legacy_Controlled_Strategies
 
 g_nn_output_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_nn_number_Of_Controlled_Strategies ) )
 
@@ -705,7 +819,7 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
     state.append( timestep_Idx / 500 )
 
     # Previous outputs
-    for last_Output in g_nn_output_History_Buffer[ -1 ]:
+    for last_Output in g_nn_output_History_Buffer[ -1 ][ : g_nn_number_Of_Legacy_Controlled_Strategies ]:
        state.append( last_Output )
 
     # Market log mean returns (long and short)
@@ -800,6 +914,7 @@ class MasterNeuralNet( nn.Module ):
 
         number_Of_Inputs = g_nn_number_Of_Inputs
         number_Of_Outputs = g_nn_number_Of_Outputs
+        legacy_Number_Of_Outputs = g_nn_legacy_number_Of_Outputs
 
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential( 
@@ -815,19 +930,67 @@ class MasterNeuralNet( nn.Module ):
             nn.ReLU(),
             nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Inputs * 2 ) ), # new
             nn.ReLU(),
-            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Outputs * 2 ) ), 
+            nn.Linear( int( number_Of_Inputs * 2 ), int( legacy_Number_Of_Outputs * 2 ) ),
             nn.ReLU(),
-            nn.Linear( int( number_Of_Outputs * 2 ), int( number_Of_Outputs * 2 ) ), # new
+            nn.Linear( int( legacy_Number_Of_Outputs * 2 ), int( legacy_Number_Of_Outputs * 2 ) ), # new
             nn.ReLU(),
-            nn.Linear( int( number_Of_Outputs * 2 ), int( number_Of_Outputs * 2 ) ), # new
+            nn.Linear( int( legacy_Number_Of_Outputs * 2 ), int( legacy_Number_Of_Outputs * 2 ) ), # new
             nn.ReLU(),
-            nn.Linear( int( number_Of_Outputs * 2 ), number_Of_Outputs )
+            nn.Linear( int( legacy_Number_Of_Outputs * 2 ), number_Of_Outputs )
         )
 
     def forward( self, x ):
         # x = self.flatten( x )
         logits = self.linear_relu_stack( x )
         return logits
+
+def loadExpandedHeadModelWeights( model, state_Dict ):
+    """Load a four-sleeve checkpoint into the seven-sleeve allocator.
+
+    The feature trunk and the two hidden head layers are unchanged.  The old
+    means occupy rows 0--3 and old log standard deviations rows 4--7; the
+    expanded head places them at 0--3 and 7--10 respectively.  New sleeves
+    start with zero mean and low exploration variance, then become trainable
+    during the next training run.
+    """
+    target_State = model.state_dict()
+    compatible_State = {
+        name: value
+        for name, value in state_Dict.items()
+        if name in target_State and value.shape == target_State[ name ].shape
+    }
+    model.load_state_dict( compatible_State, strict = False )
+
+    final_Weight_Name = "linear_relu_stack.18.weight"
+    final_Bias_Name = "linear_relu_stack.18.bias"
+    if (
+        final_Weight_Name not in state_Dict
+        or final_Bias_Name not in state_Dict
+        or state_Dict[ final_Weight_Name ].shape[ 0 ] != g_nn_legacy_number_Of_Outputs
+        or state_Dict[ final_Weight_Name ].shape[ 1 : ] != target_State[ final_Weight_Name ].shape[ 1 : ]
+    ):
+        return model
+
+    expanded_Weight = torch.zeros_like( target_State[ final_Weight_Name ] )
+    expanded_Bias = torch.zeros_like( target_State[ final_Bias_Name ] )
+    legacy_Weight = state_Dict[ final_Weight_Name ]
+    legacy_Bias = state_Dict[ final_Bias_Name ]
+    legacy_Count = g_nn_number_Of_Legacy_Controlled_Strategies
+
+    expanded_Weight[ : legacy_Count ] = legacy_Weight[ : legacy_Count ]
+    expanded_Bias[ : legacy_Count ] = legacy_Bias[ : legacy_Count ]
+    expanded_Weight[ g_nn_number_Of_Controlled_Strategies : g_nn_number_Of_Controlled_Strategies + legacy_Count ] = legacy_Weight[ legacy_Count : ]
+    expanded_Bias[ g_nn_number_Of_Controlled_Strategies : g_nn_number_Of_Controlled_Strategies + legacy_Count ] = legacy_Bias[ legacy_Count : ]
+    # Keep the new components essentially inactive until their policy-gradient
+    # evidence is strong enough to move them away from zero.
+    expanded_Bias[ g_nn_number_Of_Controlled_Strategies + legacy_Count : ] = -5.0
+
+    model.load_state_dict( {
+        final_Weight_Name: expanded_Weight,
+        final_Bias_Name: expanded_Bias,
+    }, strict = False )
+    return model
+
 
 def loadEmbeddedModelWeights( model ):
     global g_model_Weights_B64
@@ -836,15 +999,25 @@ def loadEmbeddedModelWeights( model ):
     buffer = io.BytesIO( weights_Bytes )
 
     state_Dict = torch.load( buffer, map_location = g_torch_Device, weights_only = True )
-    model.load_state_dict( state_Dict )
+    model = loadExpandedHeadModelWeights( model, state_Dict )
 
     return model
+
+
+def loadDefaultModelWeights( model ):
+    """Warm-start from the checked-in four-sleeve checkpoint when available."""
+    model_Path = os.path.join( os.path.dirname( __file__ ), "model_save_2026-07-27 11:17:53.317790" )
+    if not os.path.exists( model_Path ):
+        return model
+
+    state_Dict = torch.load( model_Path, map_location = g_torch_Device, weights_only = True )
+    return loadExpandedHeadModelWeights( model, state_Dict )
 
 # Instance
 g_neural_Net_Instance = MasterNeuralNet().to( g_torch_Device )
 
 # g_neural_Net_Instance = loadEmbeddedModelWeights( g_neural_Net_Instance )
-g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_2026-07-27 11:17:53.317790", weights_only=True))
+g_neural_Net_Instance = loadDefaultModelWeights( g_neural_Net_Instance )
 
 # Neural Net Master Strategy #
 def runNeuralNetMasterStrategy( prices_So_Far, logits ):
@@ -873,6 +1046,9 @@ def runNeuralNetMasterStrategy( prices_So_Far, logits ):
         return_Position = np.add( return_Position, multipliers[ 1 ] * runAlgorithm1Strategy( prices_So_Far ) )
     return_Position = np.add( return_Position, multipliers[ 2 ] * runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ) )
     return_Position = np.add( return_Position, multipliers[ 3 ] * runPairsTradingStrategy( prices_So_Far ) )
+    return_Position = np.add( return_Position, multipliers[ 4 ] * runRankedLongHorizonReversionStrategy( prices_So_Far ) )
+    return_Position = np.add( return_Position, multipliers[ 5 ] * runPooledAutocorrelationStrategy( prices_So_Far ) )
+    return_Position = np.add( return_Position, multipliers[ 6 ] * runRegularisedLeadLagStrategy( prices_So_Far ) )
     # print( return_Position )
     
     return_Position *= getDrawdownScalar()

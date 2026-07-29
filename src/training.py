@@ -3,6 +3,7 @@
 
 import copy
 import datetime
+import os
 import random
 import numpy as np
 import pandas as pd
@@ -305,7 +306,10 @@ if __name__ == "__main__":
     device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" )
     policy = onan.MasterNeuralNet().to( device )
 
-    policy.load_state_dict(torch.load( "./model_save_current_big_best", weights_only=True))
+    warm_Start_Path = os.path.join( os.path.dirname( __file__ ), "model_save_current_big_best" )
+    if os.path.exists( warm_Start_Path ):
+        warm_Start_State = torch.load( warm_Start_Path, map_location = device, weights_only = True )
+        policy = onan.loadExpandedHeadModelWeights( policy, warm_Start_State )
 
     trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 1200)
 
@@ -326,7 +330,6 @@ if __name__ == "__main__":
 
     date_Time_String = str( datetime.datetime.now() )
     torch.save( trained_Policy.state_dict(), "./model_save_" + date_Time_String )
-
 
 
 
