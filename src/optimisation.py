@@ -11,7 +11,7 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
 
     # Copied from eval
     pricesFile = "./prices.txt"
-    numTestDays = 740
+    numTestDays = 500
     scoreDefaultParam = 1.0
     prcAll = eval.loadPrices(pricesFile)
     prcAll = prcAll[ :, :750 ]
