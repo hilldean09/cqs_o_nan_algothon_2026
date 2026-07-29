@@ -1,4 +1,5 @@
 import numpy as np
+import torch
 from torch import nn
 from torch.distributions import Normal, Independent, TransformedDistribution
 from torch.distributions.transforms import TanhTransform, AffineTransform
@@ -79,7 +80,7 @@ g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_number_Of
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
 #   1 : moving average crossover
-g_strategy_Selection_Enum = 3
+g_strategy_Selection_Enum = 0
 
 g_smac_weight = 0.0
 g_spt_weight = 0.2
@@ -100,6 +101,13 @@ def getMyPosition( prcSoFar ):
 
     if( number_Of_Timesteps < 2 ):
         return np.zeros( number_Of_Instruments )
+
+    if( g_strategy_Selection_Enum == 0 ):
+        state = getNeuralNetInputs( prcSoFar, number_Of_Timesteps - 1 )
+        state_tensor = torch.as_tensor( state, dtype=torch.float32, device = g_torch_Device )
+        logits = g_neural_Net_Instance( state_tensor )
+        return_Position, _ = runNeuralNetMasterStrategy( prcSoFar, logits )
+        return_Position = return_Position.astype( int )
 
     if( g_strategy_Selection_Enum == 1 ):
         return_Position = runMovingAverageCrossoverStrategy( prcSoFar )
@@ -768,13 +776,137 @@ def getNeuralNetInputs( prices_So_Far, timestep_Idx ):
 
     return state
 
+
+# Getting acclerator
+g_torch_Device = torch.accelerator.current_accelerator().type if torch.accelerator.is_available() else "cpu"
+
 # NOTE: Rewritten from Claude
 # NOTE: Mean and log_Std are tensors
+def getNeuralNetMutlipliers( mean, log_Std, output_Bounds = 1.5 ):
+    # Clamping to prevent numerical
+    # instability
+    mean = torch.clamp( mean, min = -5.0, max = 5.0 )
+    log_Std = torch.clamp( log_Std, min = -5.0, max = 2.0 )
+    std = log_Std.exp()
+
+    # Building unbounded Gaussian 
+    # distribution
+    base_Distribution = Normal( loc = mean, scale = std )
+    # Ensure log_Prob is summed across
+    # strategies
+    base_Distribution = Independent( base_Distribution, reinterpreted_batch_ndims = 1 )
+
+    # Transforms numbers into values
+    # bounds between negative and positive
+    # bound
+    transform = [ TanhTransform( cache_size = 1 ), AffineTransform( loc = 0.0, scale = output_Bounds ) ]
+    squashed_Distribution = TransformedDistribution( base_Distribution, transform )
+
+    # Sampling multipliers
+    multipliers = squashed_Distribution.rsample()
+
+    log_Prob = squashed_Distribution.log_prob( multipliers )
+
+    log_Prob = torch.clamp( log_Prob, min = -10.0, max = 10.00 )
+    if torch.isnan( log_Prob ):
+        log_Prob = 0.0
+
+    multipliers = multipliers.cpu().detach().numpy()
+    multipliers = [ max( multipliers[ i ], 0.0 ) for i in range( len( multipliers ) ) ]
+
+    return multipliers, log_Prob
+
+
+
+class MasterNeuralNet( nn.Module ):
+    def __init__( self ):
+        super().__init__()
+
+        global g_nn_number_Of_Inputs
+        global g_nn_number_Of_Outputs
+
+        number_Of_Inputs = g_nn_number_Of_Inputs
+        number_Of_Outputs = g_nn_number_Of_Outputs
+
+        self.flatten = nn.Flatten()
+        self.linear_relu_stack = nn.Sequential( 
+            nn.Linear( number_Of_Inputs, int( number_Of_Inputs * 2 )  ),
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Inputs * 2 ) ),
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Inputs * 2 ) ),
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Inputs * 2 ) ), # new
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Inputs * 2 ) ), # new
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Inputs * 2 ) ), # new
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Inputs * 2 ), int( number_Of_Outputs * 2 ) ), 
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Outputs * 2 ), int( number_Of_Outputs * 2 ) ), # new
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Outputs * 2 ), int( number_Of_Outputs * 2 ) ), # new
+            nn.ReLU(),
+            nn.Linear( int( number_Of_Outputs * 2 ), number_Of_Outputs )
+        )
+
+    def forward( self, x ):
+        # x = self.flatten( x )
+        logits = self.linear_relu_stack( x )
+        return logits
+
+def loadEmbeddedModelWeights( model ):
+    global g_model_Weights_B64
+
+    weights_Bytes = base64.b64decode( g_model_Weights_B64 )
+    buffer = io.BytesIO( weights_Bytes )
+
+    state_Dict = torch.load( buffer, map_location = g_torch_Device, weights_only = True )
+    model.load_state_dict( state_Dict )
+
+    return model
 
 # Instance
+g_neural_Net_Instance = MasterNeuralNet().to( g_torch_Device )
 
+g_neural_Net_Instance = loadEmbeddedModelWeights( g_neural_Net_Instance )
+# g_neural_Net_Instance.load_state_dict(torch.load( "./model_save_current_best_v2", weights_only=True))
 
 # Neural Net Master Strategy #
+def runNeuralNetMasterStrategy( prices_So_Far, logits ):
+    ( number_Of_Instruments, number_Of_Timesteps ) = prices_So_Far.shape
+    timestep_Idx = number_Of_Timesteps - 1
+
+    global g_nn_number_Of_Outputs
+    global g_position_Limits
+
+    current_Prices = getCurrentPrices( prices_So_Far )
+    position_Limits = ( g_position_Limits / current_Prices ).astype( int )
+
+    mean_Logits_Slice = logits[ 0 : int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : 1 ]
+    log_Std_Logits_Slice = logits[ int( ( g_nn_number_Of_Outputs + 1 ) / 2  ) : g_nn_number_Of_Outputs : 1 ]
+
+    multipliers, log_Prob = getNeuralNetMutlipliers( mean_Logits_Slice, log_Std_Logits_Slice )
+
+    if random.randint( 0, 100 ) >= 99:
+        print( multipliers )
+
+    updateNeuralNetOutputHistory( multipliers )
+
+    return_Position = np.zeros( number_Of_Instruments )
+
+    return_Position = np.add( return_Position, multipliers[ 0 ] * np.clip( runPairsMeanReversionStrategy( prices_So_Far ), -position_Limits, position_Limits ).astype( int )  )
+    if( number_Of_Timesteps > 2 ):
+        return_Position = np.add( return_Position, multipliers[ 1 ] * np.clip( runAlgorithm1Strategy( prices_So_Far ), -position_Limits, position_Limits ).astype( int ) )
+    return_Position = np.add( return_Position, multipliers[ 2 ] * np.clip( runOnlineFactorRegimeEnsembleStrategy( prices_So_Far ), -position_Limits, position_Limits ).astype( int ) )
+    return_Position = np.add( return_Position, multipliers[ 3 ] * np.clip( runPairsTradingStrategy( prices_So_Far ), -position_Limits, position_Limits ).astype( int ) )
+    return_Position = np.add( return_Position, multipliers[ 4 ] * np.clip( runAlgorithm1WidenedStrategy( prices_So_Far ), -position_Limits, position_Limits ).astype( int ) )
+    
+    # return_Position *= getDrawdownScalar()
+    
+    return return_Position, log_Prob
+
 
 
 ##### Algorithm1 (widened selection variant) #####
@@ -793,7 +925,7 @@ _a1v2_heldSet = set()
 def _a1v2_leadlag_signal( rets_hist ):
     X = rets_hist[ :, :-1 ].T
     Y = rets_hist[ :, 1: ].T
-    xmu, xsd = X.mean( 0 ), X.std( 0 ) + a1v2_EPS
+##    xmu, xsd = X.mean( 0 ), X.std( 0 ) + a1v2_EPS
     ymu, ysd = Y.mean( 0 ), Y.std( 0 ) + a1v2_EPS
     Xs = ( X - xmu ) / xsd
     Ys = ( Y - ymu ) / ysd
@@ -1154,10 +1286,10 @@ def runPairsTradingStrategy( prices_So_Far ):
 
 g_pmr_Pairs_List = [ ( 49, 50 ), ( 36, 41 ), ( 31, 43 ), ( 33, 46 ) ]   # MHRM-EAFC, FWWG-BLBT, ACIX-ITPA, MTNS-ILVX
 
-g_pmr_Beta_Window = 130
-g_pmr_Z_Window = 20
+g_pmr_Beta_Window = 100
+g_pmr_Z_Window = 100
 g_pmr_Entry_Z = 1.0
-g_pmr_Exit_Z = 0.4
+g_pmr_Exit_Z = 0.8
 g_pmr_Dollars_Per_Leg = 8000.0
 
 g_pmr_Min_History = 5   # absolute floor - need at least a handful of points before a beta/z-score means anything
