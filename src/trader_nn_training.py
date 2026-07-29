@@ -310,7 +310,7 @@ if __name__ == "__main__":
 
     # policy.load_state_dict(torch.load( "./model_save_2026-07-26 16:19:13.365208", weights_only=True))
 
-    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 1200)
+    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 2400)
 
     onan.setGlobalVariable( "g_tnn_instance", trained_Policy )
     onan.setGlobalVariable( "g_strategy_Selection_Enum", 3 )

@@ -891,13 +891,18 @@ class TraderNeuralNet( nn.Module ):
 
         self.flatten = nn.Flatten()
         self.linear_relu_stack = nn.Sequential( 
+            nn.Linear( g_number_Of_Instruments * 3, g_number_Of_Instruments * 3 ),
+            nn.ReLU(),
+            nn.Linear( g_number_Of_Instruments * 3, g_number_Of_Instruments * 3 ),
+            nn.ReLU(),
             nn.Linear( g_number_Of_Instruments * 3, g_number_Of_Instruments * 2 ),
             nn.ReLU(),
-            nn.Linear( g_number_Of_Instruments * 2, g_number_Of_Instruments ),
+            nn.Linear( g_number_Of_Instruments * 2, g_number_Of_Instruments * 2 ),
             nn.ReLU(),
-            nn.Linear( g_number_Of_Instruments, g_number_Of_Instruments ),
+            nn.Linear( g_number_Of_Instruments * 2, g_number_Of_Instruments * 2 ),
             nn.ReLU(),
-            nn.Linear( g_number_Of_Instruments, g_number_Of_Instruments * 2 ),
+            nn.Linear( g_number_Of_Instruments * 2, g_number_Of_Instruments * 2 ),
+            nn.ReLU(),
         )
 
     def forward( self, x ):
