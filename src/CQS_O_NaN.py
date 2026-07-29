@@ -1188,8 +1188,8 @@ def runPairsTradingStrategy( prices_So_Far ):
 # These strategies intentionally live beside the other strategy functions but
 # are not called by runNeuralNetMasterStrategy.  They can be selected for
 # isolated backtests or incorporated into a future ensemble after validation.
-g_ranked_Reversion_Window = 60
-g_ranked_Reversion_Top_K = 20
+g_ranked_Reversion_Window = 100
+g_ranked_Reversion_Top_K = 10
 g_pooled_AR_Window = 120
 g_pooled_AR_Signal_Window = 10
 g_regularised_Lead_Lag_Window = 120
@@ -1204,7 +1204,7 @@ g_correlation_Filtered_Reversion_Eligibility_Quantile = 0.70
 
 
 def getRankedLongHorizonReversionSignal( prices_So_Far ):
-    """Return limit fractions that fade only the most extreme 60-day moves."""
+    """Return limit fractions that fade only the most extreme 100-day moves."""
     number_Of_Instruments, number_Of_Timesteps = prices_So_Far.shape
     signal = np.zeros( number_Of_Instruments )
 
@@ -1222,7 +1222,7 @@ def getRankedLongHorizonReversionSignal( prices_So_Far ):
 
 
 def runRankedLongHorizonReversionStrategy( prices_So_Far ):
-    """Long the 20 weakest and short the 20 strongest 60-day movers."""
+    """Long the 10 weakest and short the 10 strongest 100-day movers."""
     current_Prices = np.maximum( prices_So_Far[ : , -1 ], 1e-12 )
     signal = getRankedLongHorizonReversionSignal( prices_So_Far )
     return ( signal * g_position_Limits / current_Prices ).astype( int )
@@ -1271,7 +1271,10 @@ def getRegularisedLeadLagForecast( prices_So_Far ):
     standardised_Previous = ( previous_Returns - previous_Mean ) / previous_Std
     standardised_Following = ( following_Returns - following_Mean ) / following_Std
 
-    ridge = 2.0 * number_Of_Instruments
+    # Four times the feature count is deliberately strong shrinkage: it makes
+    # the forecast depend on persistent cross-asset effects rather than a few
+    # noisy correlations in the 120-day rolling sample.
+    ridge = 4.0 * number_Of_Instruments
     gram_Matrix = standardised_Previous.T @ standardised_Previous + ridge * np.eye( number_Of_Instruments )
     coefficients = np.linalg.solve( gram_Matrix, standardised_Previous.T @ standardised_Following )
     latest_Return = ( returns[ -1 ] - previous_Mean ) / previous_Std
