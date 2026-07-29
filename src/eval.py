@@ -12,7 +12,7 @@ nInst = 0
 nt = 0
 
 pricesFile = "./prices.txt"
-numTestDays = 250
+numTestDays = 900
 
 # parameter for scoring function
 scoreDefaultParam = 1.0
@@ -123,11 +123,9 @@ def calcPL(prcHist, numTestDays):
 
         # only score for test days
         if t > startDay:
-            """
             print(
                 f"Day {t} value: {value:.2f} todayPL: ${todayPL:.2f} $-traded: {totDVolume:.0f} return: {ret:.5f}"
             )
-                """
             todayPLL.append(todayPL)
             
     pll = np.array(todayPLL)

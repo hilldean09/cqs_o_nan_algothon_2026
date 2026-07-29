@@ -81,7 +81,14 @@ g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_number_Of
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
 #   1 : moving average crossover
-g_strategy_Selection_Enum = 4
+g_strategy_Selection_Enum = 3
+
+g_smac_weight = 1.0
+g_spt_weight = 1.0
+g_spmr_weight = 1.0
+g_sal1_weight = 1.0
+g_swal1_weight = 1.0
+g_sofe_weight = 1.0
 
 # NOTE: We cannot change the argument variable name from
 # prcSoFar
@@ -90,7 +97,6 @@ def getMyPosition( prcSoFar ):
     global g_strategy_Selection_Enum
     global g_neural_Net_Instance
     global g_torch_Device
-
 
     ( number_Of_Instruments, number_Of_Timesteps ) = prcSoFar.shape
 
@@ -114,14 +120,20 @@ def getMyPosition( prcSoFar ):
         return_Position *= 10
 
     if( g_strategy_Selection_Enum == 3 ):
-        return_Position = 1.0 * runPairsTradingStrategy( prcSoFar )
-        return_Position += 1.0 * runPairsMeanReversionStrategy( prcSoFar )
-        return_Position += 1.0 * runAlgorithm1WidenedStrategy( prcSoFar )
+        current_Prices = getCurrentPrices( prcSoFar )
+        position_Limits = ( g_position_Limits / current_Prices ).astype( int )
+
+        return_Position = g_spt_weight * np.clip( runPairsTradingStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
+        return_Position += g_sal1_weight * np.clip( runAlgorithm1Strategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
+        return_Position += g_spmr_weight * np.clip( runPairsMeanReversionStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
+        return_Position += g_swal1_weight * np.clip( runAlgorithm1WidenedStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
+        return_Position += g_sofe_weight  * np.clip( runOnlineFactorRegimeEnsembleStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
         return_Position[ 0 ] *= 10
         return_Position *= 10
 
     if( g_strategy_Selection_Enum == 4 ):
         return_Position = runPairsMeanReversionStrategy( prcSoFar )
+        return_Position[ 0 ] *= 10
 
     current_Position = return_Position
 

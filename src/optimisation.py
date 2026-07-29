@@ -54,7 +54,7 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
             for parameter_Idx in range( number_Of_Parameters ):
                 max_Score_Parameters[ parameter_Idx ] = parameter_Combination[ parameter_Idx ]
 
-            print( max_Score_Parameters )
+            print( str( max_Score_Parameters ) + " : " + str( max_Score ) )
             was_Updated = True
 
     # TODO: Implemenet visual
