@@ -81,7 +81,7 @@ g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_number_Of
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
 #   1 : moving average crossover
-g_strategy_Selection_Enum = 0
+g_strategy_Selection_Enum = 4
 
 # NOTE: We cannot change the argument variable name from
 # prcSoFar
@@ -119,6 +119,9 @@ def getMyPosition( prcSoFar ):
         return_Position += 1.0 * runAlgorithm1WidenedStrategy( prcSoFar )
         return_Position[ 0 ] *= 10
         return_Position *= 10
+
+    if( g_strategy_Selection_Enum == 4 ):
+        return_Position = runPairsMeanReversionStrategy( prcSoFar )
 
     current_Position = return_Position
 

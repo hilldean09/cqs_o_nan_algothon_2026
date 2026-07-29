@@ -11,9 +11,10 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
 
     # Copied from eval
     pricesFile = "./prices.txt"
-    numTestDays = 250
+    numTestDays = 750
     scoreDefaultParam = 1.0
     prcAll = eval.loadPrices(pricesFile)
+    prcAll = prcAll[ :, :750 ]
 
     parameter_Combination_Array_Dim = np.zeros( number_Of_Parameters, dtype = int )
     for parameter_Idx in range( number_Of_Parameters ):
@@ -69,8 +70,8 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
 if __name__ == "__main__":
     number_Of_Parameters = 2
 
-    parameter_Name_List = [ "MIN_HIST", "ENTER_K", "EXIT_K" ]
-    parameter_Value_Range_List = [ range( 1, 70, 3 ), range( 1, 20, 1 ), range( 1, 25, 2 ) ]
+    parameter_Name_List = [ "g_pmr_Beta_Window", "g_pmr_Z_Window", "g_pmr_Entry_Z", "g_pmr_Exit_Z" ]
+    parameter_Value_Range_List = [ range( 30, 150, 10 ), range( 10, 120, 10 ), range( 1.0, 3.0, 0.2 ), range( 0.2, 1.2, 0.1 ) ]
 
     optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List, visualise = False )
 
