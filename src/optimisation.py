@@ -2,7 +2,7 @@ import numpy as np
 import itertools
 
 import eval
-import algorithm_1 as onan
+import CQS_O_NaN as onan
 
 
 # Note to self : use globals()[ name ]
@@ -11,10 +11,11 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
 
     # Copied from eval
     pricesFile = "./prices.txt"
-    numTestDays = 750
+    numTestDays = 740
     scoreDefaultParam = 1.0
     prcAll = eval.loadPrices(pricesFile)
     prcAll = prcAll[ :, :750 ]
+    print( prcAll.shape )
 
     parameter_Combination_Array_Dim = np.zeros( number_Of_Parameters, dtype = int )
     for parameter_Idx in range( number_Of_Parameters ):
@@ -71,7 +72,7 @@ if __name__ == "__main__":
     number_Of_Parameters = 2
 
     parameter_Name_List = [ "g_pmr_Beta_Window", "g_pmr_Z_Window", "g_pmr_Entry_Z", "g_pmr_Exit_Z" ]
-    parameter_Value_Range_List = [ range( 30, 150, 10 ), range( 10, 120, 10 ), range( 1.0, 3.0, 0.2 ), range( 0.2, 1.2, 0.1 ) ]
+    parameter_Value_Range_List = [ range( 30, 150, 10 ), range( 10, 120, 10 ), np.arange( 1.0, 3.0, 0.2 ), np.arange( 0.2, 1.2, 0.1 ) ]
 
     optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List, visualise = False )
 

@@ -1283,7 +1283,7 @@ def getPairMeanReversionHedgeRatio( prices_So_Far, asset_A_Idx, asset_B_Idx, win
 
     # shrink to whatever history actually exists rather than refusing to run
     available = log_Prices.shape[ 1 ]
-    effective_Window = min( window_Size, available )
+    effective_Window = int( min( window_Size, available ) )
 
     log_A_Window = log_Prices[ asset_A_Idx ][ -effective_Window: ]
     log_B_Window = log_Prices[ asset_B_Idx ][ -effective_Window: ]
@@ -1296,7 +1296,7 @@ def getPairMeanReversionZScore( prices_So_Far, asset_A_Idx, asset_B_Idx, beta_Va
     spread_Series = log_Prices[ asset_A_Idx ] - beta_Value * log_Prices[ asset_B_Idx ]
 
     available = spread_Series.shape[ 0 ]
-    effective_Window = min( z_Window_Size, available )
+    effective_Window = int( min( z_Window_Size, available ) )
 
     z_Window = spread_Series[ -effective_Window: ]
     spread_Mean = np.mean( z_Window )
