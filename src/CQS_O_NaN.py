@@ -76,14 +76,15 @@ g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_number_Of
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
 #   1 : moving average crossover
-g_strategy_Selection_Enum = 4
+g_strategy_Selection_Enum = 3
 
 g_smac_weight = 0.0
-g_spt_weight = 0.2
-g_spmr_weight = 0.1
-g_sal1_weight = 0.2
-g_swal1_weight = 0.2
-g_sofe_weight = 0.3
+g_spt_weight = 0.5
+g_spmr_weight = 0.5
+g_sal1_weight = 2.0
+g_swal1_weight = 1.0
+g_sofe_weight = 0.0
+g_spauto_weight = 1.0
 
 # NOTE: We cannot change the argument variable name from
 # prcSoFar
@@ -116,17 +117,19 @@ def getMyPosition( prcSoFar ):
         return_Position += g_spmr_weight * np.clip( runPairsMeanReversionStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
         return_Position += g_swal1_weight * np.clip( runAlgorithm1WidenedStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
         return_Position += g_sofe_weight  * np.clip( runOnlineFactorRegimeEnsembleStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
+        return_Position += g_spauto_weight * np.clip( runPooledAutocorrelationStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
+        return_Position += g_spauto_weight * np.clip( runVolatilityAdjustedReversionStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
         return_Position[ 0 ] *= 10
-        return_Position *= 10
+        # return_Position *= 10
 
         return_Position *= getDrawdownScalar()
 
     if( g_strategy_Selection_Enum == 4 ):
         # 
         # return_Position = runPairsMeanReversionStrategy( prcSoFar )
-        # return_Position = runAlgorithm1Strategy( prcSoFar )
-        # return_Position = runAlgorithm1WidenedStrategy( prcSoFar )
-        # return_Position = runOnlineFactorRegimeEnsembleStrategy( prcSoFar )
+        # return_Position = runAlgorithm1Strategy( prcSoFar ) # Notable
+        # return_Position = runAlgorithm1WidenedStrategy( prcSoFar ) # Very notable
+        # return_Position = runOnlineFactorRegimeEnsembleStrategy( prcSoFar ) # Little (though has been successful)
         # return_Position = runPairsTradingStrategy( prcSoFar )
         # return_Position = runRankedLongHorizonReversionStrategy( prcSoFar )
         # return_Position = runRegularisedLeadLagStrategy( prcSoFar )
