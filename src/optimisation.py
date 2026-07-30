@@ -71,8 +71,8 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
 if __name__ == "__main__":
     number_Of_Parameters = 2
 
-    parameter_Name_List = [ "_VOL_WINDOW", "_PERFORMANCE_WINDOW", "_MIN_INFORMATION_RATIO" ]
-    parameter_Value_Range_List = [ range( 30, 90, 10 ), range( 10, 60, 10 ), np.arange( 0.1, 0.9, 0.05 ) ]
+    parameter_Name_List = [ "g_smac_weight", "g_spt_weight", "g_spmr_weight", "g_sal1_weight", "g_swal1_weight", "g_sofe_weight", "g_spauto_weight", "g_svars_weight" ]
+    parameter_Value_Range_List = [ np.arange( 0.0, 1.0, 0.4 ), np.arange( 0.1, 3.2, 1.0 ), np.arange( 0.1, 3.2, 1.0 ), np.arange( 2.0, 5.0, 1.0 ), np.arange( 2.0, 5.0, 1.0 ), np.arange( 0.0, 5.0, 1.0 ), np.arange( 0.0, 3.0, 1.0 ), np.arange( 0.0, 3.0, 1.0 ) ]
 
     optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List, visualise = False )
 

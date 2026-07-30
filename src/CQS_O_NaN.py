@@ -85,6 +85,7 @@ g_sal1_weight = 3.0
 g_swal1_weight = 2.0
 g_sofe_weight = 2.0
 g_spauto_weight = 1.0
+g_svars_weight = 1.0
 
 # NOTE: We cannot change the argument variable name from
 # prcSoFar
@@ -118,7 +119,7 @@ def getMyPosition( prcSoFar ):
         return_Position += g_swal1_weight * np.clip( runAlgorithm1WidenedStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
         return_Position += g_sofe_weight  * np.clip( runOnlineFactorRegimeEnsembleStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
         return_Position += g_spauto_weight * np.clip( runPooledAutocorrelationStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
-        return_Position += g_spauto_weight * np.clip( runVolatilityAdjustedReversionStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
+        return_Position += g_svars_weight * np.clip( runVolatilityAdjustedReversionStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
         return_Position[ 0 ] *= 10
         # return_Position *= 10
 
