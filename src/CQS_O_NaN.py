@@ -1686,5 +1686,5 @@ def runF1(prcSoFar):
 
 ##### External #####
 
-def setGlobalVariable( name, value ):
-    globals()[ name ] = value
+# def setGlobalVariable( name, value ):
+#    globals()[ name ] = value
