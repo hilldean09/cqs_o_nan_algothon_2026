@@ -258,3 +258,5 @@ def getMyPosition(prcSoFar):
     lim = np.nan_to_num(lim, nan=0.0, posinf=MAX_SHARES, neginf=0.0)
     pos = np.nan_to_num(pos, nan=0.0, posinf=0.0, neginf=0.0)
     return np.clip(pos, -lim, lim).astype(np.int64)
+
+

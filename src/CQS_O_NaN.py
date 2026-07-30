@@ -79,12 +79,13 @@ g_strategy_Selection_Enum = 3
 
 g_smac_weight = 0.0
 g_spt_weight = 0.1
-g_spmr_weight = 0.1
-g_sal1_weight = 3.0
-g_swal1_weight = 3.0
-g_sofe_weight = 4.0
+g_spmr_weight = 3.0
+g_sal1_weight = 2.0
+g_swal1_weight = 1.0
+g_sofe_weight = 2.0
 g_spauto_weight = 1.0
 g_svars_weight = 1.0
+g_sf1_weight = 4.0
 
 # NOTE: We cannot change the argument variable name from
 # prcSoFar
@@ -120,6 +121,7 @@ def getMyPosition( prcSoFar ):
         return_Position += g_spauto_weight * np.clip( runPooledAutocorrelationStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
         return_Position += g_svars_weight * np.clip( runVolatilityAdjustedReversionStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
         return_Position += g_sofe_weight * np.clip( runOnlineFactorRegimeEnsembleDrawdownThrottledStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
+        return_Position += g_sf1_weight * np.clip( runF1( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
         return_Position[ 0 ] *= 10
         # return_Position *= 10
 
@@ -1525,6 +1527,162 @@ def runOnlineFactorRegimeEnsembleDrawdownThrottledStrategy( prcSoFar ):
     _updateOwnPnLHistory( target_Shares.astype( float ), prcSoFar[ :, -1 ] )
 
     return target_Shares
+
+
+EPS = 1e-12
+nInst = 51
+
+# ---- dollar position limits (asset 0 has the 10x cap and 5x lower commission)
+DLR = np.full(nInst, 10_000.0)
+DLR[0] = 100_000.0
+
+# ---- lead-lag ensemble: average over a measured plateau rather than a point
+LAMBDAS = (300.0, 1000.0, 3000.0)
+RANKS = (4, 5, 6, 7)
+
+# ---- signal blend weights (leg1 = 1 - W_SREV - W_LREV)
+W_SREV = 0.25          # short-horizon residual reversal
+W_LREV = 0.10          # long-horizon reversal
+
+SREV_L = 8             # short reversal lookback (days)
+SREV_K = 3             # principal components stripped (= number of real factors)
+SREV_W = 250           # window for the PCA covariance
+LREV_L = 120           # long reversal lookback (days)
+
+KAPPA = 0.06           # saturation scale -> ~93% of assets at their cap
+MIN_HIST = 120         # below this the lead-lag matrix is too noisy to trade
+FULL_HIST = 250        # size scales in linearly between MIN_HIST and FULL_HIST
+MAX_SHARES = 1e12      # sanity ceiling so the int cast is always well-defined
+
+
+def _zc(v):
+    """Cross-sectional standardisation, safe against a degenerate cross-section."""
+    s = v.std()
+    if not np.isfinite(s) or s < EPS:
+        return np.zeros_like(v)
+    return (v - v.mean()) / s
+
+
+def _leadlag(rets):
+    """Rank-truncated ridge lead-lag forecast, averaged over the (lambda, rank)
+    plateau. Fitted on the entire history available so far."""
+    n = rets.shape[0]
+    X = rets[:, :-1].T
+    Y = rets[:, 1:].T
+    xmu = X.mean(0)
+    xsd = X.std(0) + EPS
+    ymu = Y.mean(0)
+    ysd = Y.std(0) + EPS
+    Xs = (X - xmu) / xsd
+    Ys = (Y - ymu) / ysd
+
+    G = Xs.T @ Xs
+    C = Xs.T @ Ys
+    I = np.eye(n)
+    cur = (rets[:, -1] - xmu) / xsd
+
+    acc = np.zeros(n)
+    cnt = 0
+    for lam in LAMBDAS:
+        try:
+            B = np.linalg.solve(G + lam * I, C)
+        except np.linalg.LinAlgError:
+            continue
+        try:
+            u, s, vt = np.linalg.svd(B, full_matrices=False)
+        except np.linalg.LinAlgError:
+            continue
+        for k in RANKS:
+            if k >= len(s):
+                continue
+            s2 = s.copy()
+            s2[k:] = 0.0
+            f = cur @ ((u * s2) @ vt)
+            sd = f.std()
+            if np.isfinite(sd) and sd > EPS:
+                acc += f / sd
+                cnt += 1
+    if cnt == 0:
+        return np.zeros(n)
+    return acc / cnt
+
+
+def _short_reversal(rets):
+    """Fade recent residual moves after stripping the 3 common factors."""
+    h = rets[:, -SREV_W:] if rets.shape[1] > SREV_W else rets
+    sd = h.std(1, keepdims=True) + EPS
+    z = (h - h.mean(1, keepdims=True)) / sd
+    try:
+        C = np.cov(z)
+        w, v = np.linalg.eigh(C)
+        v = v[:, ::-1][:, :SREV_K]
+        res = z - v @ (v.T @ z)
+    except np.linalg.LinAlgError:
+        res = z
+    L = min(SREV_L, res.shape[1])
+    return -res[:, -L:].sum(1) / np.sqrt(L)
+
+
+def _long_reversal(rets):
+    """Fade long-horizon normalised performance."""
+    h = rets[:, -(LREV_L + 30):] if rets.shape[1] > LREV_L + 30 else rets
+    x = h / (h.std(1, keepdims=True) + EPS)
+    L = min(LREV_L, x.shape[1])
+    return -x[:, -L:].sum(1) / np.sqrt(L)
+
+
+def runF1(prcSoFar):
+    prcSoFar = np.asarray(prcSoFar, dtype=float)
+    nins, nt = prcSoFar.shape
+
+    # ---- guards: not enough history, or unusable prices
+    if nt < MIN_HIST + 2:
+        return np.zeros(nins, dtype=int)
+    if not np.all(np.isfinite(prcSoFar)) or np.any(prcSoFar <= 0.0):
+        prc = np.where(np.isfinite(prcSoFar) & (prcSoFar > 0.0), prcSoFar, np.nan)
+        prc = np.asarray(
+            [np.interp(np.arange(nt), np.flatnonzero(np.isfinite(row)),
+                       row[np.isfinite(row)]) if np.isfinite(row).any()
+             else np.ones(nt) for row in prc])
+    else:
+        prc = prcSoFar
+
+    rets = np.diff(np.log(prc), axis=1)
+    if not np.all(np.isfinite(rets)):
+        rets = np.nan_to_num(rets, nan=0.0, posinf=0.0, neginf=0.0)
+
+    # ---- blended signal: three near-orthogonal legs
+    sig = (1.0 - W_SREV - W_LREV) * _zc(_leadlag(rets))
+    if rets.shape[1] >= SREV_L + 5:
+        sig = sig + W_SREV * _zc(_short_reversal(rets))
+    if rets.shape[1] >= 40:
+        sig = sig + W_LREV * _zc(_long_reversal(rets))
+    if not np.all(np.isfinite(sig)):
+        sig = np.nan_to_num(sig, nan=0.0, posinf=0.0, neginf=0.0)
+
+    # ---- continuous saturating sizing: no ranking, no top-K, no hysteresis
+    w = np.clip(sig / KAPPA, -1.0, 1.0)
+
+    # ---- scale in while the lead-lag estimate is still short of data
+    if rets.shape[1] < FULL_HIST:
+        w = w * np.clip((rets.shape[1] - MIN_HIST) / float(FULL_HIST - MIN_HIST), 0.0, 1.0)
+
+    # ---- dollars -> shares, hardened against degenerate prices.
+    # A price that is zero, NaN or denormally small would overflow the division
+    # and make the int cast undefined, so the divisor is floored and the result
+    # is sanitised before the cast. The share ceiling is recomputed from TODAY's
+    # price on every call, so a position can never drift outside its cap when
+    # prices move (the brief's ALGO example) -- this function is stateless and
+    # never assumes yesterday's position survived.
+    cur = np.maximum(np.nan_to_num(prc[:, -1], nan=0.0, posinf=0.0, neginf=0.0), 1e-8)
+    with np.errstate(divide='ignore', invalid='ignore', over='ignore'):
+        lim = np.floor(np.clip(DLR[:nins] / cur, 0.0, MAX_SHARES))
+        pos = np.clip(w * DLR[:nins] / cur, -lim, lim)
+    lim = np.nan_to_num(lim, nan=0.0, posinf=MAX_SHARES, neginf=0.0)
+    pos = np.nan_to_num(pos, nan=0.0, posinf=0.0, neginf=0.0)
+    return np.clip(pos, -lim, lim).astype(np.int64)
+
+
 
 ##### External #####
 
