@@ -80,9 +80,9 @@ g_strategy_Selection_Enum = 3
 g_smac_weight = 0.0
 g_spt_weight = 1.0
 g_spmr_weight = 1.0
-g_sal1_weight = 3.0
-g_swal1_weight = 2.0
-g_sofe_weight = 4.0
+g_sal1_weight = 4.0
+g_swal1_weight = 3.0
+g_sofe_weight = 2.0
 g_spauto_weight = 1.0
 g_svars_weight = 1.0
 
@@ -121,6 +121,7 @@ def getMyPosition( prcSoFar ):
         return_Position += g_svars_weight * np.clip( runVolatilityAdjustedReversionStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
         return_Position += g_sofe_weight * np.clip( runOnlineFactorRegimeEnsembleDrawdownThrottledStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
         return_Position[ 0 ] *= 10
+        return_Position[ 0 ] = position_Limits[ 0 ]
         # return_Position *= 10
 
         # return_Position *= getDrawdownScalar()
