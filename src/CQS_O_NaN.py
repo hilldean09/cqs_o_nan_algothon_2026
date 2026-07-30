@@ -80,9 +80,9 @@ g_strategy_Selection_Enum = 3
 g_smac_weight = 0.0
 g_spt_weight = 1.0
 g_spmr_weight = 1.0
-g_sal1_weight = 5.0
-g_swal1_weight = 5.0
-g_sofe_weight = 2.0
+g_sal1_weight = 3.0
+g_swal1_weight = 2.0
+g_sofe_weight = 4.0
 g_spauto_weight = 1.0
 g_svars_weight = 1.0
 
@@ -116,13 +116,14 @@ def getMyPosition( prcSoFar ):
         return_Position += g_sal1_weight * np.clip( runAlgorithm1Strategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
         return_Position += g_spmr_weight * np.clip( runPairsMeanReversionStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
         return_Position += g_swal1_weight * np.clip( runAlgorithm1WidenedStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
-        return_Position += g_sofe_weight  * np.clip( runOnlineFactorRegimeEnsembleStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
+        # return_Position += getDrawdownScalar() * g_sofe_weight  * np.clip( runOnlineFactorRegimeEnsembleStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int )
         return_Position += g_spauto_weight * np.clip( runPooledAutocorrelationStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
         return_Position += g_svars_weight * np.clip( runVolatilityAdjustedReversionStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
+        return_Position += g_sofe_weight * np.clip( runOnlineFactorRegimeEnsembleDrawdownThrottledStrategy( prcSoFar ), -position_Limits, position_Limits ).astype( int ) # Notable
         return_Position[ 0 ] *= 10
         # return_Position *= 10
 
-        return_Position *= getDrawdownScalar()
+        # return_Position *= getDrawdownScalar()
 
     if( g_strategy_Selection_Enum == 4 ):
         # 
@@ -136,6 +137,7 @@ def getMyPosition( prcSoFar ):
         # return_Position = runPooledAutocorrelationStrategy( prcSoFar ) # Notable
         # return_Position = runVolatilityAdjustedReversionStrategy( prcSoFar )# Good
         # return_Position = runCorrelationFilteredReversionStrategy( prcSoFar )
+        return_Position = runOnlineFactorRegimeEnsembleDrawdownThrottledStrategy( prcSoFar )
         return_Position[ 0 ] *= 10
 
     current_Position = return_Position
@@ -1455,6 +1457,68 @@ def runCorrelationFilteredReversionStrategy( prices_So_Far ):
     signal = getCorrelationFilteredReversionSignal( prices_So_Far )
     return ( signal * g_position_Limits / current_Prices ).astype( int )
 
+##### Online Factor Regime Ensemble — Drawdown-Throttled Variant #####
+
+_ofdd_dollar_limits = np.full( 51, 10_000.0 )
+_ofdd_dollar_limits[ 0 ] = 100_000.0
+
+_ofdd_DD_Window = 7            # trailing days of this strategy's OWN pnl used for the throttle
+_ofdd_DD_Threshold = -8000.0   # cumulative own-pnl loss over that window at which sizing bottoms out
+_ofdd_DD_Floor = 0.4           # minimum size multiplier once fully throttled
+
+# Self-contained bookkeeping so this strategy can gauge its OWN recent performance,
+# independent of the rest of the portfolio (mirrors the pattern used for the
+# portfolio-level getDrawdownScalar, but scoped to just this strategy).
+_ofdd_Position = np.zeros( 51 )
+_ofdd_Cash = 0.0
+_ofdd_Value = 0.0
+_ofdd_PnL_History = []
+
+def resetOnlineFactorDrawdownHistory():
+    global _ofdd_Position, _ofdd_Cash, _ofdd_Value, _ofdd_PnL_History
+    _ofdd_Position = np.zeros( 51 )
+    _ofdd_Cash = 0.0
+    _ofdd_Value = 0.0
+    _ofdd_PnL_History = []
+
+def _updateOwnPnLHistory( new_Position, current_Prices ):
+    global _ofdd_Position, _ofdd_Cash, _ofdd_Value, _ofdd_PnL_History
+
+    delta_Pos = new_Position - _ofdd_Position
+    _ofdd_Cash -= current_Prices.dot( delta_Pos )
+    _ofdd_Position = new_Position
+
+    position_Value = _ofdd_Position.dot( current_Prices )
+    today_PnL = _ofdd_Cash + position_Value - _ofdd_Value
+    _ofdd_Value = _ofdd_Cash + position_Value
+
+    _ofdd_PnL_History.append( today_PnL )
+    if len( _ofdd_PnL_History ) > _ofdd_DD_Window:
+        _ofdd_PnL_History.pop( 0 )
+
+def getOnlineFactorDrawdownScalar():
+    recent_PnL = sum( _ofdd_PnL_History )
+    if recent_PnL >= 0.0:
+        return 1.0
+
+    severity = min( abs( recent_PnL ) / abs( _ofdd_DD_Threshold ), 1.0 )
+    return 1.0 - severity * ( 1.0 - _ofdd_DD_Floor )
+
+def runOnlineFactorRegimeEnsembleDrawdownThrottledStrategy( prcSoFar ):
+    n_inst, n_times = prcSoFar.shape
+    if n_inst != 51 or n_times < _PERFORMANCE_WINDOW + 3:
+        return np.zeros( n_inst, dtype = int )
+
+    returns = np.diff( np.log( prcSoFar ), axis = 1 ).T
+    direction = _choose_direction( returns, _ofdd_dollar_limits )
+
+    scalar = getOnlineFactorDrawdownScalar()
+    target_Shares = direction * scalar * _ofdd_dollar_limits / prcSoFar[ :, -1 ]
+    target_Shares = target_Shares.astype( int )
+
+    _updateOwnPnLHistory( target_Shares.astype( float ), prcSoFar[ :, -1 ] )
+
+    return target_Shares
 
 ##### External #####
 
