@@ -76,7 +76,7 @@ g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_number_Of
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
 #   1 : moving average crossover
-g_strategy_Selection_Enum = 4
+g_strategy_Selection_Enum = 3
 
 g_smac_weight = 0.0
 g_spt_weight = 0.2
@@ -962,7 +962,7 @@ own validation.
 # commission in the model-selection proxy; evaluation itself applies the true
 # fees after this function returns the desired position.
 _EPS = 1e-12
-_VOL_WINDOW = 60
+_VOL_WINDOW = 30
 _PERFORMANCE_WINDOW = 30
 _LOOKBACKS = tuple(range(1, 11))
 # Do not trade when even the best expert has weak recent evidence.  This guards
