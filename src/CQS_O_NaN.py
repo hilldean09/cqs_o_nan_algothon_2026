@@ -1550,7 +1550,7 @@ SREV_W = 250           # window for the PCA covariance
 LREV_L = 120           # long reversal lookback (days)
 
 KAPPA = 0.06           # saturation scale -> ~93% of assets at their cap
-MIN_HIST = 120         # below this the lead-lag matrix is too noisy to trade
+MIN_HIST = 30         # below this the lead-lag matrix is too noisy to trade
 FULL_HIST = 250        # size scales in linearly between MIN_HIST and FULL_HIST
 MAX_SHARES = 1e12      # sanity ceiling so the int cast is always well-defined
 
