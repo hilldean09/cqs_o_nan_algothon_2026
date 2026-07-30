@@ -76,7 +76,7 @@ g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_number_Of
 # Strategy Enumeration :
 #   0 : main strategy (reserved)
 #   1 : moving average crossover
-g_strategy_Selection_Enum = 3
+g_strategy_Selection_Enum = 4
 
 g_smac_weight = 0.0
 g_spt_weight = 0.2
@@ -122,7 +122,17 @@ def getMyPosition( prcSoFar ):
         return_Position *= getDrawdownScalar()
 
     if( g_strategy_Selection_Enum == 4 ):
-        return_Position = runOnlineFactorRegimeEnsembleStrategy( prcSoFar )
+        # 
+        # return_Position = runPairsMeanReversionStrategy( prcSoFar )
+        # return_Position = runAlgorithm1Strategy( prcSoFar )
+        # return_Position = runAlgorithm1WidenedStrategy( prcSoFar )
+        # return_Position = runOnlineFactorRegimeEnsembleStrategy( prcSoFar )
+        # return_Position = runPairsTradingStrategy( prcSoFar )
+        # return_Position = runRankedLongHorizonReversionStrategy( prcSoFar )
+        # return_Position = runRegularisedLeadLagStrategy( prcSoFar )
+        # return_Position = runPooledAutocorrelationStrategy( prcSoFar ) # Notable
+        # return_Position = runVolatilityAdjustedReversionStrategy( prcSoFar )# Good
+        # return_Position = runCorrelationFilteredReversionStrategy( prcSoFar )
         return_Position[ 0 ] *= 10
 
     current_Position = return_Position
