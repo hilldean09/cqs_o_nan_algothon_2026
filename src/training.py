@@ -165,11 +165,12 @@ def runEpisode( environement, policy, device, do_Print = False ):
         next_State, reward, done, log_Prob, today_PnL = environement.step( logits )
         daily_PnL_Array.append( today_PnL )
 
+        """
         if( reward < -1000 ):
             reward *= 2
         elif( reward > 2000 ):
             reward *= 3
-        
+        """
 
         log_Prob_Array.append( log_Prob )
         reward_Array.append( reward )
@@ -305,9 +306,9 @@ if __name__ == "__main__":
     device = torch.device( "cuda" if torch.cuda.is_available() else "cpu" )
     policy = onan.MasterNeuralNet().to( device )
 
-    policy.load_state_dict(torch.load( "./model_save_current_big_best", weights_only=True))
+    policy.load_state_dict(torch.load( "./model_save_current_best_v2", weights_only=True))
 
-    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 1200)
+    trained_Policy, episode_Rewards = runTrainingLoop(policy, number_Of_Episodes = 800)
 
     onan.setGlobalVariable( "g_neural_Net_Instance", trained_Policy )
     onan.setGlobalVariable( "g_strategy_Selection_Enum", 0 )

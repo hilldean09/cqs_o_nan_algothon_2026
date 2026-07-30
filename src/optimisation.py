@@ -2,7 +2,7 @@ import numpy as np
 import itertools
 
 import eval
-import algorithm_1 as onan
+import CQS_O_NaN as onan
 
 
 # Note to self : use globals()[ name ]
@@ -11,9 +11,11 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
 
     # Copied from eval
     pricesFile = "./prices.txt"
-    numTestDays = 250
+    numTestDays = 500
     scoreDefaultParam = 1.0
     prcAll = eval.loadPrices(pricesFile)
+    prcAll = prcAll[ :, :750 ]
+    print( prcAll.shape )
 
     parameter_Combination_Array_Dim = np.zeros( number_Of_Parameters, dtype = int )
     for parameter_Idx in range( number_Of_Parameters ):
@@ -52,7 +54,7 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
             for parameter_Idx in range( number_Of_Parameters ):
                 max_Score_Parameters[ parameter_Idx ] = parameter_Combination[ parameter_Idx ]
 
-            print( max_Score_Parameters )
+            print( str( max_Score_Parameters ) + " : " + str( max_Score ) )
             was_Updated = True
 
     # TODO: Implemenet visual
@@ -69,8 +71,8 @@ def optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List,
 if __name__ == "__main__":
     number_Of_Parameters = 2
 
-    parameter_Name_List = [ "MIN_HIST", "ENTER_K", "EXIT_K" ]
-    parameter_Value_Range_List = [ range( 1, 70, 3 ), range( 1, 20, 1 ), range( 1, 25, 2 ) ]
+    parameter_Name_List = [ "_VOL_WINDOW", "_PERFORMANCE_WINDOW", "_MIN_INFORMATION_RATIO" ]
+    parameter_Value_Range_List = [ range( 30, 90, 10 ), range( 10, 60, 10 ), np.arange( 0.1, 0.9, 0.05 ) ]
 
     optimiseParametersForScore( parameter_Name_List, parameter_Value_Range_List, visualise = False )
 
