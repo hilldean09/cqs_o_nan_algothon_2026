@@ -79,11 +79,11 @@ g_position_History_Buffer = np.zeros( ( g_trade_History_Buffer_Size, g_number_Of
 g_strategy_Selection_Enum = 3
 
 g_smac_weight = 0.0
-g_spt_weight = 0.5
-g_spmr_weight = 0.5
-g_sal1_weight = 2.0
-g_swal1_weight = 1.0
-g_sofe_weight = 0.0
+g_spt_weight = 1.0
+g_spmr_weight = 1.0
+g_sal1_weight = 3.0
+g_swal1_weight = 2.0
+g_sofe_weight = 2.0
 g_spauto_weight = 1.0
 
 # NOTE: We cannot change the argument variable name from
